@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Transcripts - Q&A Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .status {
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 500;
+            display: inline-block;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        
+        .transcript-panel, .qa-panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            background: #34495e;
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        
+        .transcript-content {
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .transcript-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            border-radius: 5px;
+        }
+        
+        .transcript-time {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+        
+        .transcript-text {
+            margin-top: 5px;
+        }
+        
+        .insight-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #e8f5e8;
+            border-left: 4px solid #27ae60;
+            border-radius: 5px;
+        }
+        
+        .insight-type {
+            font-weight: 600;
+            color: #27ae60;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+        
+        .qa-content {
+            padding: 20px;
+        }
+        
+        .quick-questions {
+            margin-bottom: 20px;
+        }
+        
+        .quick-questions h4 {
+            margin-bottom: 10px;
+            color: #34495e;
+        }
+        
+        .quick-question-btn {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 10px 15px;
+            background: #ecf0f1;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+        
+        .quick-question-btn:hover {
+            background: #bdc3c7;
+        }
+        
+        .question-form {
+            margin-bottom: 20px;
+        }
+        
+        .question-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .question-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .ask-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .ask-btn:hover {
+            background: #2980b9;
+        }
+        
+        .ask-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .response-area {
+            margin-top: 20px;
+        }
+        
+        .response-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #9b59b6;
+        }
+        
+        .response-question {
+            font-weight: 600;
+            color: #8e44ad;
+            margin-bottom: 8px;
+        }
+        
+        .response-answer {
+            color: #2c3e50;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Live Transcripts - Q&A Interface</h1>
+            <p>Ask questions about your meeting in real-time</p>
+            <div id="connectionStatus" class="status disconnected">Connecting...</div>
+        </div>
+        
+        <div class="main-content">
+            <div class="transcript-panel">
+                <div class="panel-header">📝 Live Transcript</div>
+                <div class="transcript-content" id="transcriptContent">
+                    <div class="loading">Waiting for transcriptions...</div>
+                </div>
+            </div>
+            
+            <div class="qa-panel">
+                <div class="panel-header">💬 Ask Questions</div>
+                <div class="qa-content">
+                    <div class="quick-questions">
+                        <h4>Quick Questions:</h4>
+                        <button class="quick-question-btn" onclick="askQuickQuestion('What are the main topics discussed so far?')">
+                            📋 What are the main topics?
+                        </button>
+                        <button class="quick-question-btn" onclick="askQuickQuestion('What action items have been mentioned?')">
+                            ✅ What are the action items?
+                        </button>
+                        <button class="quick-question-btn" onclick="askQuickQuestion('Who are the key people mentioned and their roles?')">
+                            👥 Who are the key people?
+                        </button>
+                        <button class="quick-question-btn" onclick="askQuickQuestion('Summarize the last 2 minutes of discussion')">
+                            ⏰ Summarize recent discussion
+                        </button>
+                        <button class="quick-question-btn" onclick="askQuickQuestion('What questions or concerns were raised?')">
+                            ❓ What concerns were raised?
+                        </button>
+                    </div>
+                    
+                    <div class="question-form">
+                        <textarea 
+                            id="questionInput" 
+                            class="question-input" 
+                            placeholder="Ask anything about the meeting content..."
+                        ></textarea>
+                        <button class="ask-btn" id="askButton" onclick="askQuestion()">
+                            Ask Question
+                        </button>
+                    </div>
+                    
+                    <div class="response-area" id="responseArea">
+                        <!-- Responses will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let transcripts = [];
+        let insights = [];
+        
+        function connectWebSocket() {
+            // Use the same hostname but WebSocket port (8765)
+            const wsUrl = `ws://${window.location.hostname}:8765`;
+            console.log('Attempting to connect to:', wsUrl);
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function() {
+                    console.log('✅ Connected to Live Transcripts WebSocket');
+                    updateConnectionStatus(true);
+                };
+                
+                ws.onmessage = function(event) {
+                    console.log('📨 Received message:', event.data);
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleMessage(data);
+                    } catch (e) {
+                        console.error('Failed to parse message:', e, event.data);
+                    }
+                };
+                
+                ws.onclose = function(event) {
+                    console.log('❌ WebSocket connection closed:', event.code, event.reason);
+                    updateConnectionStatus(false);
+                    // Try to reconnect after 3 seconds
+                    setTimeout(connectWebSocket, 3000);
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('💥 WebSocket error:', error);
+                    updateConnectionStatus(false);
+                };
+                
+            } catch (error) {
+                console.error('Failed to create WebSocket:', error);
+                updateConnectionStatus(false);
+                // Retry after 3 seconds
+                setTimeout(connectWebSocket, 3000);
+            }
+        }
+        
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (connected) {
+                statusEl.textContent = '🟢 Connected';
+                statusEl.className = 'status connected';
+            } else {
+                statusEl.textContent = '🔴 Disconnected';
+                statusEl.className = 'status disconnected';
+            }
+        }
+        
+        function handleMessage(data) {
+            if (data.type === 'transcript') {
+                addTranscript(data.content);
+            } else if (data.type === 'insight') {
+                addInsight(data.content);
+            } else if (data.type === 'answer') {
+                addResponse(data.question, data.content);
+            }
+        }
+        
+        function addTranscript(transcript) {
+            transcripts.push(transcript);
+            updateTranscriptDisplay();
+        }
+        
+        function addInsight(insight) {
+            insights.push(insight);
+            updateTranscriptDisplay();
+        }
+        
+        function updateTranscriptDisplay() {
+            const container = document.getElementById('transcriptContent');
+            
+            // Combine transcripts and insights, sort by timestamp
+            const allItems = [
+                ...transcripts.map(t => ({...t, type: 'transcript'})),
+                ...insights.map(i => ({...i, type: 'insight'}))
+            ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            if (allItems.length === 0) {
+                container.innerHTML = '<div class="loading">Waiting for transcriptions...</div>';
+                return;
+            }
+            
+            container.innerHTML = allItems.map(item => {
+                const time = new Date(item.timestamp).toLocaleTimeString();
+                
+                if (item.type === 'transcript') {
+                    return `
+                        <div class="transcript-item">
+                            <div class="transcript-time">[${time}]</div>
+                            <div class="transcript-text">${item.text}</div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="insight-item">
+                            <div class="insight-type">${item.type || 'Insight'}</div>
+                            <div class="transcript-time">[${time}]</div>
+                            <div class="transcript-text">${item.content}</div>
+                        </div>
+                    `;
+                }
+            }).join('');
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function askQuestion() {
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+            
+            if (!question) return;
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Not connected to Live Transcripts. Please wait for connection.');
+                return;
+            }
+            
+            // Send question
+            ws.send(JSON.stringify({
+                type: 'question',
+                content: question
+            }));
+            
+            // Clear input and show loading
+            input.value = '';
+            showLoading(question);
+        }
+        
+        function askQuickQuestion(question) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Not connected to Live Transcripts. Please wait for connection.');
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'question',
+                content: question
+            }));
+            
+            showLoading(question);
+        }
+        
+        function showLoading(question) {
+            const responseArea = document.getElementById('responseArea');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'response-item';
+            loadingDiv.innerHTML = `
+                <div class="response-question">Q: ${question}</div>
+                <div class="response-answer loading">🤔 Thinking...</div>
+            `;
+            responseArea.appendChild(loadingDiv);
+            responseArea.scrollTop = responseArea.scrollHeight;
+        }
+        
+        function addResponse(question, answer) {
+            const responseArea = document.getElementById('responseArea');
+            
+            // Remove loading indicator if it exists
+            const loadingItems = responseArea.querySelectorAll('.loading');
+            loadingItems.forEach(item => {
+                if (item.closest('.response-item')) {
+                    item.closest('.response-item').remove();
+                }
+            });
+            
+            // Add response
+            const responseDiv = document.createElement('div');
+            responseDiv.className = 'response-item';
+            responseDiv.innerHTML = `
+                <div class="response-question">Q: ${question}</div>
+                <div class="response-answer">${answer}</div>
+            `;
+            responseArea.appendChild(responseDiv);
+            responseArea.scrollTop = responseArea.scrollHeight;
+        }
+        
+        // Handle Enter key in textarea
+        document.getElementById('questionInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                askQuestion();
+            }
+        });
+        
+        // Connect when page loads (with a small delay to ensure WebSocket server is ready)
+        window.addEventListener('load', function() {
+            console.log('🌐 Page loaded, connecting to WebSocket in 1 second...');
+            setTimeout(connectWebSocket, 1000);
+        });
+    </script>
+</body>
+</html>
