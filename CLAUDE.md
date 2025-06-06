@@ -158,10 +158,17 @@ Audio Capture → VAD Batching → Whisper API → Context Manager →
 → [Gemini Q&A | Automated Insights | Dynamic Questions] → WebSocket Clients
 ```
 
+**Full Transcript Context System:**
+- **ALL Gemini API calls use the COMPLETE transcript from meeting start**
+- No rolling window - leverages Gemini's 2M token context window
+- Context accumulates throughout the meeting for comprehensive understanding
+- Q&A can reference any part of the meeting, not just recent discussion
+- Insights generated with full meeting context for better accuracy
+- Contextual questions consider all topics discussed, not just recent ones
+
 **Dynamic Questions System:**
 - Background task generates contextual questions every 15 seconds
-- Uses rolling transcript context (5-minute window) via Gemini API
-- Minimum 50-word context required before generation
+- Uses FULL transcript history (not just recent context) via Gemini API
 - WebSocket broadcasts `suggested_questions` message type
 - Client-side rotation updates one question slot at a time
 - Smooth fade-out/fade-in animations for seamless UX

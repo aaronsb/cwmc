@@ -16,9 +16,10 @@ class GeminiConfig:
     model: str = "gemini-2.0-flash-exp"
     temperature: float = 0.3
     max_tokens: int = 2048
-    context_window_minutes: int = 5
+    context_window_minutes: int = 5  # DEPRECATED - we use full transcript now
     insight_interval_seconds: int = 60
     max_conversation_length: int = 20
+    use_full_transcript: bool = True  # Always use complete transcript history
     
     def __post_init__(self):
         """Validate configuration."""
@@ -84,28 +85,21 @@ class MeetingInsight:
 
 
 class ContextManager:
-    """Manages rolling context window for AI processing."""
+    """Manages complete transcript history for AI processing."""
     
     def __init__(self, config: GeminiConfig):
         self.config = config
-        self.transcriptions: List = []  # List of TranscriptionResult
+        self.transcriptions: List = []  # List of TranscriptionResult - stores ENTIRE history
+        # Note: We keep the config window for backwards compatibility but don't use it
         self.context_window = timedelta(minutes=config.context_window_minutes)
     
     def add_transcription(self, transcription) -> None:
-        """Add transcription to context."""
+        """Add transcription to context - keeps full history."""
         self.transcriptions.append(transcription)
-        self.prune_old_context()
-    
-    def prune_old_context(self) -> None:
-        """Remove transcriptions outside context window."""
-        cutoff_time = datetime.now() - self.context_window
-        self.transcriptions = [
-            t for t in self.transcriptions 
-            if t.timestamp > cutoff_time
-        ]
+        # No pruning - we want the ENTIRE transcript for Gemini's 2M token context
     
     def get_context_text(self) -> str:
-        """Get formatted context text for AI processing."""
+        """Get COMPLETE transcript history for AI processing - uses full context."""
         if not self.transcriptions:
             return ""
         
@@ -114,7 +108,14 @@ class ContextManager:
             timestamp_str = transcription.timestamp.strftime("%H:%M:%S")
             context_parts.append(f"[{timestamp_str}] {transcription.text}")
         
-        return "\n".join(context_parts)
+        full_transcript = "\n".join(context_parts)
+        
+        # Log context size for monitoring
+        word_count = len(full_transcript.split())
+        char_count = len(full_transcript)
+        print(f"📊 Using FULL transcript context: {word_count} words, {char_count} chars, {len(self.transcriptions)} segments")
+        
+        return full_transcript
     
     def get_context_stats(self) -> Dict[str, Any]:
         """Get statistics about current context."""
@@ -307,40 +308,44 @@ class InsightGenerator:
     
     def _build_summary_prompt(self, context_text: str) -> str:
         """Build prompt for summary generation."""
-        return f"""Based on the following meeting transcript, provide a concise summary of the key discussion points:
+        return f"""Based on the COMPLETE meeting transcript from the beginning, provide a comprehensive summary of the key discussion points:
 
-Meeting Transcript:
+Complete Meeting Transcript (from start to present):
 {context_text}
 
-Please provide a brief summary highlighting:
-- Main topics discussed
-- Key decisions made
-- Important points raised
+Please provide a thorough summary that covers the ENTIRE meeting, highlighting:
+- All main topics discussed throughout the meeting
+- Key decisions made at any point
+- Important points raised from beginning to end
+- Overall meeting progression and conclusions
 
 Summary:"""
     
     def _build_action_items_prompt(self, context_text: str) -> str:
         """Build prompt for action items generation."""
-        return f"""Based on the following meeting transcript, identify specific action items and tasks mentioned:
+        return f"""Based on the COMPLETE meeting transcript from beginning to end, identify ALL specific action items and tasks mentioned throughout the entire meeting:
 
-Meeting Transcript:
+Complete Meeting Transcript (entire meeting history):
 {context_text}
 
-Please list any action items, tasks, or follow-up items mentioned, including:
+Please list ALL action items, tasks, or follow-up items mentioned at any point in the meeting, including:
 - What needs to be done
 - Who is responsible (if mentioned)
 - Any deadlines mentioned
+- When in the meeting it was discussed
+
+Review the ENTIRE transcript to ensure no action items are missed.
 
 Action Items:"""
     
     def _build_questions_prompt(self, context_text: str) -> str:
         """Build prompt for questions generation."""
-        return f"""Based on the following meeting transcript, suggest clarifying questions that might be helpful:
+        return f"""Based on the COMPLETE meeting transcript from start to finish, suggest clarifying questions that address gaps or unclear points from the ENTIRE discussion:
 
-Meeting Transcript:
+Complete Meeting Transcript (all content from beginning):
 {context_text}
 
-Please suggest 2-3 relevant questions that could help clarify the discussion or gather more information:
+Analyzing the FULL meeting context, suggest 2-3 relevant questions that could help clarify any part of the discussion or gather more information about topics raised at any point:
 
 Questions:"""
 
@@ -377,17 +382,17 @@ class QAHandler:
         return answer
     
     def _build_qa_prompt(self, question: str) -> str:
-        """Build prompt for Q&A with meeting context."""
+        """Build prompt for Q&A with COMPLETE meeting context."""
         context_text = self.context_manager.get_context_text()
         
-        prompt = f"""You are an AI assistant helping with a live meeting. Based on the current meeting context, please answer the following question.
+        prompt = f"""You are an AI assistant with access to the COMPLETE meeting transcript from beginning to end. Please answer the following question using ANY information from the ENTIRE meeting.
 
-Current Meeting Context:
-{context_text if context_text else "No recent meeting context available."}
+Complete Meeting Transcript (everything from start to now):
+{context_text if context_text else "No meeting context available yet."}
 
 Question: {question}
 
-Please provide a helpful answer based on the meeting context. If the answer cannot be determined from the context, please say so clearly.
+Please provide a comprehensive answer based on the ENTIRE meeting transcript. You have access to everything that has been said from the beginning of the meeting. If the answer requires information from earlier in the meeting, please include it.
 
 Answer:"""
         
@@ -397,19 +402,20 @@ Answer:"""
         """Generate contextual questions based on recent meeting content."""
         context_text = self.context_manager.get_context_text()
         
-        # Need meaningful context (at least ~50 words)
-        if not context_text or len(context_text.split()) < 50:
-            print(f"📊 Context too short for questions: {len(context_text.split()) if context_text else 0} words")
+        # Check for any context (even small amounts are fine with full transcript)
+        if not context_text:
+            print(f"📊 No context available yet for questions")
             return []
         
-        print(f"📄 Context for questions ({len(context_text.split())} words): {context_text[:150]}...")
+        word_count = len(context_text.split())
+        print(f"📄 Full transcript context for questions: {word_count} words, {len(context_text)} chars")
         
-        prompt = f"""Based on the following recent meeting discussion, generate exactly 4 specific questions that attendees might want to ask. Make them relevant and practical.
+        prompt = f"""Based on the COMPLETE meeting transcript from beginning to end, generate exactly 4 specific questions that attendees might want to ask. These should be relevant to ANY topics discussed throughout the ENTIRE meeting, not just recent parts.
 
-Recent Discussion:
+Complete Meeting Transcript (entire history):
 {context_text}
 
-Please list exactly 4 questions, one per line, without numbering or bullet points. Each question should end with a question mark."""
+Considering ALL topics and discussions from the ENTIRE meeting, list exactly 4 questions, one per line, without numbering or bullet points. Each question should end with a question mark."""
         
         try:
             response = await self.client.generate_content(prompt)
