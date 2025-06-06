@@ -26,6 +26,7 @@ class MessageType(Enum):
     TRANSCRIPT = "transcript"
     INSIGHT = "insight"
     SUGGESTED_QUESTIONS = "suggested_questions"
+    INTENT = "intent"
 
 
 class ConnectionState(Enum):
@@ -204,10 +205,12 @@ class SessionManager:
 class WebSocketHandler:
     """Handles individual WebSocket connections."""
     
-    def __init__(self, session_manager: SessionManager, qa_handler):
+    def __init__(self, session_manager: SessionManager, qa_handler, server=None):
         self.session_manager = session_manager
         self.qa_handler = qa_handler
+        self.server = server  # Reference to LiveQAServer
         self.current_session_id: Optional[str] = None
+        self.current_intent: str = ""  # Store user's session intent
     
     async def handle_connection(self, websocket) -> None:
         """Handle a WebSocket connection."""
@@ -259,6 +262,8 @@ class WebSocketHandler:
             
             if message_type == MessageType.QUESTION.value:
                 await self._handle_question(websocket, data)
+            elif message_type == MessageType.INTENT.value:
+                await self._handle_intent(websocket, data)
             else:
                 await self._send_error(websocket, f"Unknown message type: {message_type}", data.get("request_id"))
                 
@@ -332,6 +337,32 @@ class WebSocketHandler:
         }
         await websocket.send(json.dumps(message))
     
+    async def _handle_intent(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle intent update from client."""
+        try:
+            self.current_intent = data.get("content", "").strip()
+            print(f"🎯 Session intent updated: '{self.current_intent}' for session {self.current_session_id}")
+            
+            # Store intent in qa_handler if it exists
+            if self.qa_handler and hasattr(self.qa_handler, 'set_session_intent'):
+                self.qa_handler.set_session_intent(self.current_intent)
+            
+            # Update the server's global intent
+            if self.server:
+                self.server.current_intent = self.current_intent
+                print(f"📍 Updated server intent: '{self.current_intent}'")
+            
+            # Send confirmation
+            confirmation = {
+                "type": MessageType.STATUS.value,
+                "message": f"Session focus updated: {self.current_intent if self.current_intent else 'Default'}",
+                "timestamp": datetime.now().isoformat()
+            }
+            await websocket.send(json.dumps(confirmation))
+            
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to update intent: {e}", None)
+    
     async def _send_error(self, websocket, error_message: str, request_id: Optional[str]) -> None:
         """Send error message to client."""
         message = {
@@ -354,6 +385,9 @@ class WebSocketHandler:
         if message_type == MessageType.QUESTION.value:
             required_fields = ["content"]
             return all(field in data and data[field] for field in required_fields)
+        
+        if message_type == MessageType.INTENT.value:
+            return "content" in data  # Intent can be empty string to clear
         
         return True
     
@@ -449,6 +483,7 @@ class LiveQAServer:
         self.http_server = None
         self.start_time: Optional[datetime] = None
         self.active_connections: Set = set()
+        self.current_intent: str = ""  # Global intent for all sessions
         
         # Find the web interface file
         self.interface_file_path = self._find_web_interface_file()
@@ -504,7 +539,7 @@ class LiveQAServer:
                     await websocket.close(code=1011, reason="Server not ready")
                     return
                 
-                handler = WebSocketHandler(self.session_manager, self.qa_handler)
+                handler = WebSocketHandler(self.session_manager, self.qa_handler, self)
                 print(f"✅ WebSocket handler created, starting connection handling...")
                 await handler.handle_connection(websocket)
             except Exception as e:
@@ -666,6 +701,10 @@ class LiveQAServer:
         while self.is_running:
             try:
                 if self.qa_handler and hasattr(self.qa_handler, 'generate_contextual_questions'):
+                    # Update QA handler with current intent if it has changed
+                    if hasattr(self.qa_handler, 'session_intent') and self.qa_handler.session_intent != self.current_intent:
+                        self.qa_handler.set_session_intent(self.current_intent)
+                    
                     print("🔄 Generating contextual questions...")
                     questions = await self.qa_handler.generate_contextual_questions()
                     if questions:

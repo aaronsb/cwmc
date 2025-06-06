@@ -118,6 +118,44 @@
             background: var(--color-danger);
         }
         
+        .intent-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+        
+        .intent-label {
+            color: var(--color-neutral-400);
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .intent-input {
+            flex: 1;
+            max-width: 400px;
+            padding: 8px 12px;
+            border: 1px solid var(--color-neutral-40);
+            border-radius: var(--border-radius);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--color-neutral-0);
+            color: var(--color-neutral-900);
+            transition: all 0.15s ease;
+        }
+        
+        .intent-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 1px var(--color-primary);
+        }
+        
+        .intent-input::placeholder {
+            color: var(--color-neutral-100);
+            font-style: italic;
+        }
+        
         .main-content {
             display: grid;
             grid-template-columns: 1fr 420px;
@@ -440,6 +478,14 @@
                 gap: 8px;
             }
             
+            .intent-container {
+                width: 100%;
+            }
+            
+            .intent-input {
+                max-width: 100%;
+            }
+            
             .qa-content {
                 padding: 16px;
             }
@@ -453,7 +499,16 @@
 <body>
     <div class="container">
         <div class="header">
-            <div></div>
+            <div class="intent-container">
+                <label for="intentInput" class="intent-label">Session Focus:</label>
+                <input 
+                    type="text" 
+                    id="intentInput" 
+                    class="intent-input" 
+                    placeholder="e.g., 'Identify action items' or 'Find technical insights'"
+                    title="Guide the AI's focus for questions and insights"
+                >
+            </div>
             <div id="connectionStatus" class="status disconnected">Connecting</div>
         </div>
         
@@ -523,6 +578,8 @@
         let suggestedQuestions = [];
         let currentQuestionSlot = 0;
         let questionIcons = ['📋', '✅', '👥', '❓', '💡', '🎯', '📊', '🔍'];
+        let currentIntent = '';
+        let intentUpdateTimeout = null;
         
         function connectWebSocket() {
             // Use the same hostname but WebSocket port (8765)
@@ -780,6 +837,38 @@
                 askQuestion();
             }
         });
+        
+        // Handle intent input changes
+        function updateIntent() {
+            const intentInput = document.getElementById('intentInput');
+            const newIntent = intentInput.value.trim();
+            
+            if (newIntent !== currentIntent) {
+                currentIntent = newIntent;
+                console.log('🎯 Updating session intent:', currentIntent);
+                
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'intent',
+                        content: currentIntent
+                    }));
+                }
+            }
+        }
+        
+        // Set up intent input handler with debouncing
+        document.getElementById('intentInput').addEventListener('input', function(e) {
+            // Clear existing timeout
+            if (intentUpdateTimeout) {
+                clearTimeout(intentUpdateTimeout);
+            }
+            
+            // Set new timeout to update after 500ms of no typing
+            intentUpdateTimeout = setTimeout(updateIntent, 500);
+        });
+        
+        // Also update on blur (when user clicks away)
+        document.getElementById('intentInput').addEventListener('blur', updateIntent);
         
         // Connect when page loads (with a small delay to ensure WebSocket server is ready)
         window.addEventListener('load', function() {

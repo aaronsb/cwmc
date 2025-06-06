@@ -175,6 +175,11 @@ class LiveTranscriptsApp:
             self.tasks.append(audio_task)
             print("✓ Audio processing loop started")
             
+            # Start intent synchronization task
+            intent_task = asyncio.create_task(self._intent_sync_loop())
+            self.tasks.append(intent_task)
+            print("✓ Intent synchronization started")
+            
             print(f"\n🎤 Live Transcripts is running!")
             print(f"📡 WebSocket server: ws://localhost:{self.qa_server.port}")
             print(f"🌐 Web interface: http://localhost:{self.qa_server.http_port}")
@@ -251,6 +256,24 @@ class LiveTranscriptsApp:
         except Exception as e:
             print(f"Audio processing error: {e}")
             self.is_running = False
+    
+    async def _intent_sync_loop(self) -> None:
+        """Synchronize intent between Q&A server and insight generator."""
+        try:
+            while self.is_running:
+                # Check if Q&A server has a current intent
+                if (self.qa_server and hasattr(self.qa_server, 'current_intent') and 
+                    self.insight_generator and hasattr(self.insight_generator, 'session_intent')):
+                    
+                    current_intent = self.qa_server.current_intent
+                    if self.insight_generator.session_intent != current_intent:
+                        self.insight_generator.set_session_intent(current_intent)
+                
+                # Check every 5 seconds
+                await asyncio.sleep(5)
+                
+        except Exception as e:
+            print(f"Intent sync error: {e}")
     
     async def _on_transcription_result(self, result) -> None:
         """Handle new transcription result."""

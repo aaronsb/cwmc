@@ -222,6 +222,7 @@ class InsightGenerator:
         self.client = GeminiClient(config, "")  # API key set during initialization
         self.is_running = False
         self._insight_callbacks: List[Callable] = []
+        self.session_intent: str = ""  # User's session focus/intent
     
     async def generate_summary(self) -> MeetingInsight:
         """Generate meeting summary insight."""
@@ -306,9 +307,18 @@ class InsightGenerator:
         """Stop automated insight generation."""
         self.is_running = False
     
+    def set_session_intent(self, intent: str) -> None:
+        """Set the session intent for focused insights."""
+        self.session_intent = intent
+        print(f"📌 Insight generator intent updated: '{intent}'")
+    
     def _build_summary_prompt(self, context_text: str) -> str:
         """Build prompt for summary generation."""
-        return f"""Based on the COMPLETE meeting transcript from the beginning, provide a comprehensive summary of the key discussion points:
+        intent_prefix = ""
+        if self.session_intent:
+            intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
+        
+        return f"""{intent_prefix}Based on the COMPLETE meeting transcript from the beginning, provide a comprehensive summary of the key discussion points:
 
 Complete Meeting Transcript (from start to present):
 {context_text}
@@ -318,12 +328,17 @@ Please provide a thorough summary that covers the ENTIRE meeting, highlighting:
 - Key decisions made at any point
 - Important points raised from beginning to end
 - Overall meeting progression and conclusions
+{f"- Specific focus on aspects related to: {self.session_intent}" if self.session_intent else ""}
 
 Summary:"""
     
     def _build_action_items_prompt(self, context_text: str) -> str:
         """Build prompt for action items generation."""
-        return f"""Based on the COMPLETE meeting transcript from beginning to end, identify ALL specific action items and tasks mentioned throughout the entire meeting:
+        intent_prefix = ""
+        if self.session_intent:
+            intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
+        
+        return f"""{intent_prefix}Based on the COMPLETE meeting transcript from beginning to end, identify ALL specific action items and tasks mentioned throughout the entire meeting:
 
 Complete Meeting Transcript (entire meeting history):
 {context_text}
@@ -333,6 +348,7 @@ Please list ALL action items, tasks, or follow-up items mentioned at any point i
 - Who is responsible (if mentioned)
 - Any deadlines mentioned
 - When in the meeting it was discussed
+{f"- Pay special attention to items related to: {self.session_intent}" if self.session_intent else ""}
 
 Review the ENTIRE transcript to ensure no action items are missed.
 
@@ -340,12 +356,16 @@ Action Items:"""
     
     def _build_questions_prompt(self, context_text: str) -> str:
         """Build prompt for questions generation."""
-        return f"""Based on the COMPLETE meeting transcript from start to finish, suggest clarifying questions that address gaps or unclear points from the ENTIRE discussion:
+        intent_prefix = ""
+        if self.session_intent:
+            intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
+        
+        return f"""{intent_prefix}Based on the COMPLETE meeting transcript from start to finish, suggest clarifying questions that address gaps or unclear points from the ENTIRE discussion:
 
 Complete Meeting Transcript (all content from beginning):
 {context_text}
 
-Analyzing the FULL meeting context, suggest 2-3 relevant questions that could help clarify any part of the discussion or gather more information about topics raised at any point:
+Analyzing the FULL meeting context, suggest 2-3 relevant questions that could help clarify any part of the discussion or gather more information about topics raised at any point{f", especially regarding: {self.session_intent}" if self.session_intent else ""}:
 
 Questions:"""
 
@@ -359,6 +379,7 @@ class QAHandler:
         self.client = GeminiClient(config, "")  # API key set during initialization
         self.conversation_history: List[ChatMessage] = []
         self.max_conversation_length = config.max_conversation_length
+        self.session_intent: str = ""  # User's session focus/intent
     
     async def answer_question(self, question: str) -> str:
         """Answer a question based on meeting context."""
@@ -410,12 +431,16 @@ Answer:"""
         word_count = len(context_text.split())
         print(f"📄 Full transcript context for questions: {word_count} words, {len(context_text)} chars")
         
-        prompt = f"""Based on the COMPLETE meeting transcript from beginning to end, generate exactly 4 specific questions that attendees might want to ask. These should be relevant to ANY topics discussed throughout the ENTIRE meeting, not just recent parts.
+        intent_prefix = ""
+        if self.session_intent:
+            intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
+        
+        prompt = f"""{intent_prefix}Based on the COMPLETE meeting transcript from beginning to end, generate exactly 4 specific questions that attendees might want to ask. These should be relevant to ANY topics discussed throughout the ENTIRE meeting, not just recent parts.
 
 Complete Meeting Transcript (entire history):
 {context_text}
 
-Considering ALL topics and discussions from the ENTIRE meeting, list exactly 4 questions, one per line, without numbering or bullet points. Each question should end with a question mark."""
+Considering ALL topics and discussions from the ENTIRE meeting{f", with special focus on {self.session_intent}" if self.session_intent else ""}, list exactly 4 questions, one per line, without numbering or bullet points. Each question should end with a question mark."""
         
         try:
             response = await self.client.generate_content(prompt)
@@ -462,6 +487,11 @@ Considering ALL topics and discussions from the ENTIRE meeting, list exactly 4 q
                 "Are there any action items or next steps?",
                 "What questions or concerns were raised?"
             ]
+    
+    def set_session_intent(self, intent: str) -> None:
+        """Set the session intent for focused Q&A and questions."""
+        self.session_intent = intent
+        print(f"📌 QA handler intent updated: '{intent}'")
     
     def _prune_conversation_history(self) -> None:
         """Prune conversation history to stay within limits."""
