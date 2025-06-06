@@ -69,21 +69,30 @@ Choose your operating system:
 2. **Create Multi-Output Device** (Critical Step):
    - Open **Audio MIDI Setup** (Cmd+Space, search "Audio MIDI Setup")
    - Click the **"+"** button → **"Create Multi-Output Device"**
-   - **Check BOTH boxes**:
-     - ✅ **BlackHole 2ch** 
-     - ✅ **MacBook Pro Speakers** (or your preferred speakers)
+   - **Check ALL boxes for devices you want to hear audio from**:
+     - ✅ **BlackHole 2ch** (REQUIRED for transcription)
+     - ✅ **MacBook Pro Speakers** (for built-in speakers)
+     - ✅ **Your Headphones/AirPods** (if you use them)
    - **Name it**: "Live Transcripts Setup"
-   - **Set Master Device** to your speakers (not BlackHole)
+   - **Set Master Device** to your preferred audio device (NOT BlackHole)
 
-3. **Set System Audio Output**:
+3. **Set System Audio Output** (CRITICAL STEP):
    - Open **System Preferences → Sound → Output**
    - **Select**: "Live Transcripts Setup" (your new multi-output device)
+   - **IMPORTANT**: This must ALWAYS be your system output when using Live Transcripts
    - **Test**: Play music - you should hear it AND Live Transcripts should capture it
 
-4. **Verify Setup**:
+4. **Using with Headphones/AirPods**:
+   - **DO**: Keep "Live Transcripts Setup" as system output
+   - **DO**: Your headphones/AirPods will still work - audio goes to both
+   - **DON'T**: Switch output directly to headphones/AirPods (breaks transcription)
+   - **WHY**: System audio must flow through the multi-output device for capture
+
+5. **Verify Setup**:
    - Play a YouTube video with clear speech
    - Run Live Transcripts
-   - You should see **actual transcriptions**, not just "you"
+   - You should see **actual transcriptions**, not just silence
+   - If wearing headphones, you should hear audio AND see transcriptions
 
 #### 🪟 **Windows Users**
 No additional setup needed! Windows has built-in audio loopback support.
@@ -208,7 +217,10 @@ SERVER_PORT=8765         # Server port
 ## 🆘 Troubleshooting
 
 ### **"No audio being captured"**
-- **macOS**: Ensure BlackHole is installed and set as your audio output
+- **macOS**: 
+  - Ensure BlackHole is installed and "Live Transcripts Setup" is your system output
+  - **Common Issue**: If using headphones/AirPods, audio MUST go through multi-output device
+  - Go to System Preferences → Sound → Output → Select "Live Transcripts Setup"
 - **Windows**: Check that applications are playing audio through your default output device
 - **All platforms**: Verify the system audio is working by playing music
 
@@ -242,6 +254,20 @@ SERVER_PORT=8765         # Server port
 **Google AI (Gemini)**: ~$0.001 per 1K characters for Q&A
 
 *Example: A 1-hour meeting costs approximately $0.36 for transcription + ~$0.10 for Q&A = **$0.46 total***
+
+## ❓ Frequently Asked Questions
+
+### **Why don't I see transcriptions when using headphones/AirPods?**
+On macOS, you MUST keep "Live Transcripts Setup" as your system output device. When you switch directly to headphones/AirPods, audio bypasses BlackHole and can't be captured. The multi-output device sends audio to BOTH your headphones AND BlackHole for transcription.
+
+### **Can I use this with Bluetooth headphones?**
+Yes! Just make sure to:
+1. Add your Bluetooth device to the multi-output device in Audio MIDI Setup
+2. Keep "Live Transcripts Setup" as your system output
+3. Set your Bluetooth device as the "Master Device" in the multi-output configuration
+
+### **Do I need to change audio settings every time?**
+No, once configured, just leave "Live Transcripts Setup" as your default output. It works for all scenarios - speakers, wired headphones, or Bluetooth devices.
 
 ## 📞 Support
 
