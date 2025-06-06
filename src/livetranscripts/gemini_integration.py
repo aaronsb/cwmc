@@ -393,6 +393,70 @@ Answer:"""
         
         return prompt
     
+    async def generate_contextual_questions(self) -> List[str]:
+        """Generate contextual questions based on recent meeting content."""
+        context_text = self.context_manager.get_context_text()
+        
+        # Need meaningful context (at least ~50 words)
+        if not context_text or len(context_text.split()) < 50:
+            print(f"📊 Context too short for questions: {len(context_text.split()) if context_text else 0} words")
+            return []
+        
+        print(f"📄 Context for questions ({len(context_text.split())} words): {context_text[:150]}...")
+        
+        prompt = f"""Based on the following recent meeting discussion, generate exactly 4 specific questions that attendees might want to ask. Make them relevant and practical.
+
+Recent Discussion:
+{context_text}
+
+Please list exactly 4 questions, one per line, without numbering or bullet points. Each question should end with a question mark."""
+        
+        try:
+            response = await self.client.generate_content(prompt)
+            print(f"🤖 Gemini raw response: {response[:200]}...")  # First 200 chars
+            
+            # Split response into lines and clean up
+            lines = response.strip().split('\n')
+            questions = []
+            
+            for line in lines:
+                line = line.strip()
+                # Skip empty lines
+                if not line:
+                    continue
+                    
+                # Remove common prefixes (numbers, bullets, etc.)
+                line = line.lstrip('0123456789.-*•● ')
+                
+                # Only keep lines that look like questions
+                if line and '?' in line:
+                    questions.append(line)
+            
+            # If we got fewer than 4 questions, use default fallbacks
+            default_questions = [
+                "What are the key technical details mentioned?",
+                "What are the next steps or action items?",
+                "Who is responsible for each task?",
+                "What timeline was discussed?"
+            ]
+            
+            # Fill in with defaults if needed
+            while len(questions) < 4 and default_questions:
+                questions.append(default_questions.pop(0))
+            
+            # Return exactly 4 questions
+            return questions[:4]
+            
+        except Exception as e:
+            print(f"Error generating contextual questions: {e}")
+            # Return default questions on error
+            return [
+                "What are the main topics being discussed?",
+                "What decisions have been made so far?",
+                "Are there any action items or next steps?",
+                "What questions or concerns were raised?"
+            ]
+    
     def _prune_conversation_history(self) -> None:
         """Prune conversation history to stay within limits."""
         if len(self.conversation_history) > self.max_conversation_length:

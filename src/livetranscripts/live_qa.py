@@ -25,6 +25,7 @@ class MessageType(Enum):
     STATUS = "status"
     TRANSCRIPT = "transcript"
     INSIGHT = "insight"
+    SUGGESTED_QUESTIONS = "suggested_questions"
 
 
 class ConnectionState(Enum):
@@ -485,6 +486,14 @@ class LiveQAServer:
             self.http_server = HTTPServerThread(self.host, self.http_port, self.interface_file_path)
             self.http_server.start()
         
+        # Start background tasks
+        self._background_tasks = []
+        cleanup_task = asyncio.create_task(self.cleanup_task())
+        self._background_tasks.append(cleanup_task)
+        
+        questions_task = asyncio.create_task(self.contextual_questions_task())
+        self._background_tasks.append(questions_task)
+        
         async def connection_handler(websocket):
             print(f"🌐 WebSocket connection attempt from {websocket.remote_address}")
             self.active_connections.add(websocket)
@@ -531,6 +540,11 @@ class LiveQAServer:
             self.server.close()
         if self.http_server:
             self.http_server.stop()
+        
+        # Cancel background tasks
+        if hasattr(self, '_background_tasks'):
+            for task in self._background_tasks:
+                task.cancel()
     
     async def broadcast_message(self, message: Dict[str, Any]) -> None:
         """Broadcast message to all connected clients."""
@@ -573,6 +587,17 @@ class LiveQAServer:
                 "content": insight.content,
                 "confidence": insight.confidence,
                 "timestamp": insight.timestamp.isoformat()
+            }
+        }
+        await self.broadcast_message(message)
+    
+    async def broadcast_suggested_questions(self, questions: List[str]) -> None:
+        """Broadcast suggested questions to all clients."""
+        message = {
+            "type": MessageType.SUGGESTED_QUESTIONS.value,
+            "content": {
+                "questions": questions,
+                "timestamp": datetime.now().isoformat()
             }
         }
         await self.broadcast_message(message)
@@ -633,6 +658,31 @@ class LiveQAServer:
                 await asyncio.sleep(300)  # Cleanup every 5 minutes
             except Exception as e:
                 print(f"Cleanup error: {e}")
+    
+    async def contextual_questions_task(self) -> None:
+        """Generate and broadcast contextual questions every 15 seconds."""
+        await asyncio.sleep(10)  # Initial delay to let some transcripts accumulate
+        
+        while self.is_running:
+            try:
+                if self.qa_handler and hasattr(self.qa_handler, 'generate_contextual_questions'):
+                    print("🔄 Generating contextual questions...")
+                    questions = await self.qa_handler.generate_contextual_questions()
+                    if questions:
+                        print(f"📝 Generated questions: {questions}")
+                        await self.broadcast_suggested_questions(questions)
+                        print(f"🎯 Broadcast {len(questions)} contextual questions")
+                    else:
+                        print("⚠️  No questions generated")
+                else:
+                    print("⚠️  QA handler not available or missing method")
+                
+                await asyncio.sleep(15)  # Generate new questions every 15 seconds
+            except Exception as e:
+                print(f"💥 Contextual questions generation error: {e}")
+                import traceback
+                traceback.print_exc()
+                await asyncio.sleep(15)  # Continue after error
 
 
 # Utility functions
@@ -645,14 +695,21 @@ async def run_qa_server(qa_handler, host: str = "localhost", port: int = 8765) -
     """Run the Live Q&A server."""
     server = create_qa_server(qa_handler, host, port)
     
-    # Start cleanup task
+    # Start background tasks
     cleanup_task = asyncio.create_task(server.cleanup_task())
+    questions_task = asyncio.create_task(server.contextual_questions_task())
     
     try:
         await server.start()
     finally:
+        # Cancel background tasks
         cleanup_task.cancel()
+        questions_task.cancel()
         try:
             await cleanup_task
+        except asyncio.CancelledError:
+            pass
+        try:
+            await questions_task
         except asyncio.CancelledError:
             pass

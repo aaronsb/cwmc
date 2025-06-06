@@ -9,6 +9,7 @@ Live Transcripts captures your meeting audio in real-time, transcribes it instan
 - **🎤 Live Audio Capture**: Automatically captures all system audio from your computer (Zoom, Teams, Google Meet, etc.)
 - **📝 Real-Time Transcription**: Converts speech to text instantly using OpenAI's advanced Whisper technology
 - **💬 Live Q&A**: Ask questions about the meeting content and get instant AI-powered answers
+- **🎯 Dynamic Smart Questions**: Contextual quick questions that adapt to your actual meeting topics every 15 seconds
 - **💡 Smart Insights**: Automatically generates meeting summaries, action items, and follow-up questions
 - **🔄 No Meeting Interruption**: Works silently in the background without disrupting your meetings
 
@@ -127,6 +128,13 @@ sudo apt-get install portaudio19-dev pulseaudio
 
 ### Live Q&A
 Connect to the Q&A interface at `http://localhost:8765` in your web browser, or use any WebSocket client to ask questions:
+
+**🎯 Smart Quick Questions:**
+The interface features **dynamic contextual questions** that automatically adapt to your meeting content:
+- **"Summarize recent discussion"** - Always available
+- **4 contextual questions** - Update every 15 seconds based on actual meeting topics
+- Questions become more relevant as your meeting progresses
+- No more generic prompts - get questions tailored to what's actually being discussed!
 
 **Example Questions You Can Ask:**
 - "What was the main topic discussed so far?"

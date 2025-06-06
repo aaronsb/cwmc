@@ -146,15 +146,26 @@ python -m src.livetranscripts.server
 - ✅ Async Whisper API integration with retry logic
 - ✅ Rolling context window for Gemini AI processing
 - ✅ WebSocket server for live Q&A
+- ✅ **Dynamic contextual questions** - AI-generated questions that adapt to meeting content every 15 seconds
 - ✅ Automated insight generation (summaries, action items, questions)
+- ✅ Modern, sleek UI inspired by Atlassian design system
 - ✅ Session management and error handling
 - ✅ Cross-platform compatibility
 
 **Architecture Flow:**
 ```
 Audio Capture → VAD Batching → Whisper API → Context Manager → 
-→ [Gemini Q&A | Automated Insights] → WebSocket Clients
+→ [Gemini Q&A | Automated Insights | Dynamic Questions] → WebSocket Clients
 ```
+
+**Dynamic Questions System:**
+- Background task generates contextual questions every 15 seconds
+- Uses rolling transcript context (5-minute window) via Gemini API
+- Minimum 50-word context required before generation
+- WebSocket broadcasts `suggested_questions` message type
+- Client-side rotation updates one question slot at a time
+- Smooth fade-out/fade-in animations for seamless UX
+- "Summarize recent discussion" always remains available
 
 **Entry Points:**
 - `main.py` - Full live transcription system

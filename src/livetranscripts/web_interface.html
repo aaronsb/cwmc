@@ -11,212 +11,441 @@
             box-sizing: border-box;
         }
         
+        :root {
+            --color-primary: #0052CC;
+            --color-primary-hover: #0043A8;
+            --color-success: #00875A;
+            --color-warning: #FF8B00;
+            --color-danger: #DE350B;
+            --color-neutral-0: #FFFFFF;
+            --color-neutral-10: #F7F8F9;
+            --color-neutral-20: #F1F2F4;
+            --color-neutral-40: #DFE1E6;
+            --color-neutral-60: #B3BAC5;
+            --color-neutral-100: #8993A4;
+            --color-neutral-200: #6B778C;
+            --color-neutral-400: #42526E;
+            --color-neutral-500: #253858;
+            --color-neutral-900: #091E42;
+            --border-radius: 6px;
+            --border-radius-lg: 8px;
+            --shadow-sm: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-md: 0 4px 8px -2px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+            --shadow-lg: 0 8px 12px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+        }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue', sans-serif;
+            background: var(--color-neutral-10);
+            color: var(--color-neutral-900);
+            line-height: 1.5;
+            font-size: 14px;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1440px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 24px;
         }
         
         .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding: 20px 24px;
+            background: var(--color-neutral-0);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-neutral-40);
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
         
         .header h1 {
-            color: #2c3e50;
-            margin-bottom: 10px;
+            color: var(--color-neutral-900);
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+        
+        .header-subtitle {
+            color: var(--color-neutral-200);
+            font-size: 14px;
+            margin: 0;
+            font-weight: 400;
         }
         
         .status {
-            padding: 10px 20px;
-            border-radius: 25px;
+            padding: 6px 12px;
+            border-radius: 16px;
             font-weight: 500;
-            display: inline-block;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
         }
         
         .status.connected {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(0, 135, 90, 0.1);
+            color: var(--color-success);
+        }
+        
+        .status.connected::before {
+            background: var(--color-success);
         }
         
         .status.disconnected {
-            background: #f8d7da;
-            color: #721c24;
+            background: rgba(222, 53, 11, 0.1);
+            color: var(--color-danger);
+        }
+        
+        .status.disconnected::before {
+            background: var(--color-danger);
         }
         
         .main-content {
             display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
+            grid-template-columns: 1fr 420px;
+            gap: 24px;
         }
         
-        .transcript-panel, .qa-panel {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        .panel {
+            background: var(--color-neutral-0);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-neutral-40);
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         
         .panel-header {
-            background: #34495e;
-            color: white;
-            padding: 15px 20px;
+            background: var(--color-neutral-500);
+            color: var(--color-neutral-0);
+            padding: 16px 24px;
             font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--color-neutral-40);
         }
         
         .transcript-content {
-            height: 500px;
+            flex: 1;
+            height: 600px;
             overflow-y: auto;
-            padding: 20px;
+            padding: 0;
+        }
+        
+        .transcript-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .transcript-content::-webkit-scrollbar-track {
+            background: var(--color-neutral-20);
+        }
+        
+        .transcript-content::-webkit-scrollbar-thumb {
+            background: var(--color-neutral-100);
+            border-radius: 3px;
         }
         
         .transcript-item {
-            margin-bottom: 15px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-left: 4px solid #3498db;
-            border-radius: 5px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--color-neutral-20);
+            transition: background-color 0.15s ease;
+        }
+        
+        .transcript-item:hover {
+            background: var(--color-neutral-10);
+        }
+        
+        .transcript-item:last-child {
+            border-bottom: none;
         }
         
         .transcript-time {
-            font-size: 0.9em;
-            color: #7f8c8d;
+            font-size: 12px;
+            color: var(--color-neutral-200);
             font-weight: 500;
+            margin-bottom: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
         }
         
         .transcript-text {
-            margin-top: 5px;
+            color: var(--color-neutral-900);
+            line-height: 1.6;
         }
         
         .insight-item {
-            margin-bottom: 15px;
-            padding: 15px;
-            background: #e8f5e8;
-            border-left: 4px solid #27ae60;
-            border-radius: 5px;
+            padding: 16px 24px;
+            background: rgba(0, 135, 90, 0.04);
+            border-bottom: 1px solid var(--color-neutral-20);
+            border-left: 3px solid var(--color-success);
         }
         
         .insight-type {
             font-weight: 600;
-            color: #27ae60;
+            color: var(--color-success);
             text-transform: uppercase;
-            font-size: 0.9em;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
         }
         
         .qa-content {
-            padding: 20px;
-        }
-        
-        .quick-questions {
-            margin-bottom: 20px;
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
         }
         
         .quick-questions h4 {
-            margin-bottom: 10px;
-            color: #34495e;
+            margin-bottom: 12px;
+            color: var(--color-neutral-900);
+            font-size: 14px;
+            font-weight: 600;
         }
         
         .quick-question-btn {
-            display: block;
+            display: flex;
+            align-items: center;
             width: 100%;
             margin-bottom: 8px;
-            padding: 10px 15px;
-            background: #ecf0f1;
-            border: none;
-            border-radius: 5px;
+            padding: 12px 16px;
+            background: var(--color-neutral-0);
+            border: 1px solid var(--color-neutral-40);
+            border-radius: var(--border-radius);
             cursor: pointer;
             text-align: left;
-            font-size: 0.9em;
-            transition: background 0.2s;
+            font-size: 13px;
+            color: var(--color-neutral-900);
+            transition: all 0.15s ease;
+            gap: 8px;
         }
         
         .quick-question-btn:hover {
-            background: #bdc3c7;
+            background: var(--color-neutral-10);
+            border-color: var(--color-neutral-60);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .quick-question-btn:active {
+            transform: translateY(0);
+        }
+        
+        .quick-question-btn.updating {
+            animation: fadeOut 0.3s ease-out;
+        }
+        
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+        }
+        
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateX(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
         
         .question-form {
-            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
         
         .question-input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #ecf0f1;
-            border-radius: 5px;
+            padding: 12px 16px;
+            border: 2px solid var(--color-neutral-40);
+            border-radius: var(--border-radius);
             font-size: 14px;
-            margin-bottom: 10px;
+            font-family: inherit;
             resize: vertical;
-            min-height: 80px;
+            min-height: 96px;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            line-height: 1.5;
         }
         
         .question-input:focus {
             outline: none;
-            border-color: #3498db;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 1px var(--color-primary);
+        }
+        
+        .question-input::placeholder {
+            color: var(--color-neutral-100);
         }
         
         .ask-btn {
-            background: #3498db;
-            color: white;
+            background: var(--color-primary);
+            color: var(--color-neutral-0);
             border: none;
             padding: 12px 24px;
-            border-radius: 5px;
+            border-radius: var(--border-radius);
             cursor: pointer;
             font-weight: 500;
-            transition: background 0.2s;
+            font-size: 14px;
+            transition: all 0.15s ease;
+            align-self: flex-start;
         }
         
         .ask-btn:hover {
-            background: #2980b9;
+            background: var(--color-primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .ask-btn:active {
+            transform: translateY(0);
         }
         
         .ask-btn:disabled {
-            background: #bdc3c7;
+            background: var(--color-neutral-60);
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         
         .response-area {
-            margin-top: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .response-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .response-area::-webkit-scrollbar-track {
+            background: var(--color-neutral-20);
+        }
+        
+        .response-area::-webkit-scrollbar-thumb {
+            background: var(--color-neutral-100);
+            border-radius: 3px;
         }
         
         .response-item {
-            margin-bottom: 15px;
-            padding: 15px;
-            border-radius: 5px;
-            background: #f8f9fa;
-            border-left: 4px solid #9b59b6;
+            padding: 16px;
+            border-radius: var(--border-radius);
+            background: var(--color-neutral-10);
+            border: 1px solid var(--color-neutral-40);
         }
         
         .response-question {
             font-weight: 600;
-            color: #8e44ad;
+            color: var(--color-primary);
             margin-bottom: 8px;
+            font-size: 13px;
         }
         
         .response-answer {
-            color: #2c3e50;
+            color: var(--color-neutral-900);
+            line-height: 1.6;
+            font-size: 14px;
         }
         
         .loading {
             text-align: center;
-            color: #7f8c8d;
+            color: var(--color-neutral-100);
             font-style: italic;
-            padding: 20px;
+            padding: 48px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .loading::before {
+            content: '';
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--color-neutral-40);
+            border-top: 2px solid var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--color-neutral-100);
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 16px;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
         }
         
         @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .qa-content {
+                padding: 16px;
+            }
+            
+            .transcript-content {
+                height: 400px;
             }
         }
     </style>
@@ -224,39 +453,48 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎤 Live Transcripts - Q&A Interface</h1>
-            <p>Ask questions about your meeting in real-time</p>
-            <div id="connectionStatus" class="status disconnected">Connecting...</div>
+            <div></div>
+            <div id="connectionStatus" class="status disconnected">Connecting</div>
         </div>
         
         <div class="main-content">
-            <div class="transcript-panel">
-                <div class="panel-header">📝 Live Transcript</div>
+            <div class="panel transcript-panel">
+                <div class="panel-header">
+                    <span>📝</span>
+                    Live Transcript
+                </div>
                 <div class="transcript-content" id="transcriptContent">
-                    <div class="loading">Waiting for transcriptions...</div>
+                    <div class="loading">Waiting for transcriptions</div>
                 </div>
             </div>
             
-            <div class="qa-panel">
-                <div class="panel-header">💬 Ask Questions</div>
+            <div class="panel qa-panel">
+                <div class="panel-header">
+                    <span>💬</span>
+                    Ask Questions
+                </div>
                 <div class="qa-content">
                     <div class="quick-questions">
                         <h4>Quick Questions:</h4>
-                        <button class="quick-question-btn" onclick="askQuickQuestion('What are the main topics discussed so far?')">
-                            📋 What are the main topics?
-                        </button>
-                        <button class="quick-question-btn" onclick="askQuickQuestion('What action items have been mentioned?')">
-                            ✅ What are the action items?
-                        </button>
-                        <button class="quick-question-btn" onclick="askQuickQuestion('Who are the key people mentioned and their roles?')">
-                            👥 Who are the key people?
-                        </button>
-                        <button class="quick-question-btn" onclick="askQuickQuestion('Summarize the last 2 minutes of discussion')">
-                            ⏰ Summarize recent discussion
-                        </button>
-                        <button class="quick-question-btn" onclick="askQuickQuestion('What questions or concerns were raised?')">
-                            ❓ What concerns were raised?
-                        </button>
+                        <div id="quickQuestionsContainer">
+                            <!-- Permanent question -->
+                            <button class="quick-question-btn permanent" onclick="askQuickQuestion('Summarize the last 2 minutes of discussion')">
+                                ⏰ Summarize recent discussion
+                            </button>
+                            <!-- Dynamic questions will be added here -->
+                            <button class="quick-question-btn dynamic" data-slot="0" data-question="What are the main topics discussed so far?" onclick="askQuickQuestion(this.getAttribute('data-question'))">
+                                📋 What are the main topics discussed so far?
+                            </button>
+                            <button class="quick-question-btn dynamic" data-slot="1" data-question="What action items have been mentioned?" onclick="askQuickQuestion(this.getAttribute('data-question'))">
+                                ✅ What action items have been mentioned?
+                            </button>
+                            <button class="quick-question-btn dynamic" data-slot="2" data-question="Who are the key people mentioned and their roles?" onclick="askQuickQuestion(this.getAttribute('data-question'))">
+                                👥 Who are the key people mentioned and their roles?
+                            </button>
+                            <button class="quick-question-btn dynamic" data-slot="3" data-question="What questions or concerns were raised?" onclick="askQuickQuestion(this.getAttribute('data-question'))">
+                                ❓ What questions or concerns were raised?
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="question-form">
@@ -282,6 +520,9 @@
         let ws = null;
         let transcripts = [];
         let insights = [];
+        let suggestedQuestions = [];
+        let currentQuestionSlot = 0;
+        let questionIcons = ['📋', '✅', '👥', '❓', '💡', '🎯', '📊', '🔍'];
         
         function connectWebSocket() {
             // Use the same hostname but WebSocket port (8765)
@@ -329,10 +570,10 @@
         function updateConnectionStatus(connected) {
             const statusEl = document.getElementById('connectionStatus');
             if (connected) {
-                statusEl.textContent = '🟢 Connected';
+                statusEl.textContent = 'Connected';
                 statusEl.className = 'status connected';
             } else {
-                statusEl.textContent = '🔴 Disconnected';
+                statusEl.textContent = 'Disconnected';
                 statusEl.className = 'status disconnected';
             }
         }
@@ -344,6 +585,8 @@
                 addInsight(data.content);
             } else if (data.type === 'answer') {
                 addResponse(data.question, data.content);
+            } else if (data.type === 'suggested_questions') {
+                updateSuggestedQuestions(data.content.questions);
             }
         }
         
@@ -463,6 +706,71 @@
             `;
             responseArea.appendChild(responseDiv);
             responseArea.scrollTop = responseArea.scrollHeight;
+        }
+        
+        function updateSuggestedQuestions(questions) {
+            console.log('📨 Received suggested questions:', questions);
+            
+            if (!questions || questions.length === 0) {
+                console.log('⚠️  No questions to update');
+                return;
+            }
+            
+            // Store the new questions
+            suggestedQuestions = questions;
+            
+            // Get all dynamic question buttons
+            const dynamicButtons = document.querySelectorAll('.quick-question-btn.dynamic');
+            
+            if (dynamicButtons.length === 0) {
+                console.log('⚠️  No dynamic buttons found');
+                return;
+            }
+            
+            // Update all questions at once on first load
+            if (currentQuestionSlot === 0) {
+                // Update all buttons with the new questions
+                dynamicButtons.forEach((button, index) => {
+                    if (index < suggestedQuestions.length) {
+                        const icon = questionIcons[index % questionIcons.length];
+                        button.setAttribute('data-question', suggestedQuestions[index]);
+                        button.innerHTML = `${icon} ${suggestedQuestions[index]}`;
+                    }
+                });
+                currentQuestionSlot = 1; // Start rotation from second slot next time
+            } else {
+                // Rotate one question at a time
+                const buttonIndex = (currentQuestionSlot - 1) % dynamicButtons.length;
+                const questionIndex = (currentQuestionSlot - 1) % suggestedQuestions.length;
+                const buttonToUpdate = dynamicButtons[buttonIndex];
+                const newQuestion = suggestedQuestions[questionIndex];
+                
+                console.log(`🔄 Updating button ${buttonIndex} with question: ${newQuestion}`);
+                
+                // Add updating animation
+                buttonToUpdate.classList.add('updating');
+                
+                // After animation completes, update the question
+                setTimeout(() => {
+                    // Pick an icon based on slot for consistency
+                    const icon = questionIcons[buttonIndex % questionIcons.length];
+                    
+                    // Update the button
+                    buttonToUpdate.setAttribute('data-question', newQuestion);
+                    buttonToUpdate.innerHTML = `${icon} ${newQuestion}`;
+                    
+                    // Remove updating class and add fade-in animation
+                    buttonToUpdate.classList.remove('updating');
+                    buttonToUpdate.style.animation = 'fadeIn 0.3s ease-out';
+                    
+                    setTimeout(() => {
+                        buttonToUpdate.style.animation = '';
+                    }, 300);
+                }, 300);
+                
+                // Move to next slot for next update
+                currentQuestionSlot = (currentQuestionSlot % 4) + 1;
+            }
         }
         
         // Handle Enter key in textarea
