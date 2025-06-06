@@ -88,7 +88,7 @@ class LiveTranscriptsApp:
         )
         
         gemini_config = GeminiConfig(
-            model=self.config.get('gemini_model', 'gemini-2.0-flash-exp'),
+            model=self.config.get('gemini_model', 'gemini-1.5-flash'),
             temperature=self.config.get('gemini_temperature', 0.3),
             context_window_minutes=self.config.get('context_window_minutes', 5),
             insight_interval_seconds=self.config.get('insight_interval_seconds', 60)

@@ -13,7 +13,7 @@ import google.generativeai as genai
 class GeminiConfig:
     """Configuration for Gemini API integration."""
     
-    model: str = "gemini-2.0-flash-lite"  # Using 2.0 Flash-Lite for better rate limits
+    model: str = "gemini-1.5-flash"  # Using 1.5 Flash for stable rate limits
     temperature: float = 0.3
     max_tokens: int = 2048
     context_window_minutes: int = 5  # DEPRECATED - we use full transcript now
@@ -219,13 +219,16 @@ class InsightGenerator:
     def __init__(self, config: GeminiConfig, context_manager: ContextManager):
         self.config = config
         self.context_manager = context_manager
-        self.client = GeminiClient(config, "")  # API key set during initialization
+        self.client = None  # Will be set by main app - ensures same client instance
         self.is_running = False
         self._insight_callbacks: List[Callable] = []
         self.session_intent: str = ""  # User's session focus/intent
     
     async def generate_summary(self) -> MeetingInsight:
         """Generate meeting summary insight."""
+        if not self.client:
+            raise RuntimeError("Insight generator client not initialized")
+            
         context_text = self.context_manager.get_context_text()
         if not context_text:
             raise ValueError("No context available for summary")
@@ -242,6 +245,9 @@ class InsightGenerator:
     
     async def generate_action_items(self) -> MeetingInsight:
         """Generate action items insight."""
+        if not self.client:
+            raise RuntimeError("Insight generator client not initialized")
+            
         context_text = self.context_manager.get_context_text()
         if not context_text:
             raise ValueError("No context available for action items")
@@ -258,6 +264,9 @@ class InsightGenerator:
     
     async def generate_questions(self) -> MeetingInsight:
         """Generate clarifying questions insight."""
+        if not self.client:
+            raise RuntimeError("Insight generator client not initialized")
+            
         context_text = self.context_manager.get_context_text()
         if not context_text:
             raise ValueError("No context available for questions")
@@ -376,13 +385,16 @@ class QAHandler:
     def __init__(self, config: GeminiConfig, context_manager: ContextManager):
         self.config = config
         self.context_manager = context_manager
-        self.client = GeminiClient(config, "")  # API key set during initialization
+        self.client = None  # Will be set by main app - ensures same client instance
         self.conversation_history: List[ChatMessage] = []
         self.max_conversation_length = config.max_conversation_length
         self.session_intent: str = ""  # User's session focus/intent
     
     async def answer_question(self, question: str) -> str:
         """Answer a question based on meeting context."""
+        if not self.client:
+            raise RuntimeError("QA handler client not initialized")
+            
         # Add question to conversation history
         user_message = ChatMessage(role="user", content=question)
         self.conversation_history.append(user_message)
@@ -390,8 +402,8 @@ class QAHandler:
         # Build prompt with context
         prompt = self._build_qa_prompt(question)
         
-        # Generate answer
-        answer = await self.client.generate_with_context(prompt, self.conversation_history[:-1])
+        # Generate answer using simple generate_content (more reliable than generate_with_context)
+        answer = await self.client.generate_content(prompt)
         
         # Add answer to conversation history
         assistant_message = ChatMessage(role="assistant", content=answer)
@@ -421,6 +433,10 @@ Answer:"""
     
     async def generate_contextual_questions(self) -> List[str]:
         """Generate contextual questions based on recent meeting content."""
+        if not self.client:
+            print("⚠️  QA handler client not initialized")
+            return []
+            
         context_text = self.context_manager.get_context_text()
         
         # Check for any context (even small amounts are fine with full transcript)
