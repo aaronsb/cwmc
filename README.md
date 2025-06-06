@@ -247,7 +247,7 @@ MIN_BATCH_DURATION=3      # Minimum seconds before transcribing
 MAX_BATCH_DURATION=30     # Maximum seconds to wait
 
 # Q&A Settings
-GEMINI_MODEL=gemini-2.5-pro-002  # Google AI model (higher rate limits)
+GEMINI_MODEL=gemini-2.0-flash-lite  # Google AI model (optimized rate limits)
 INSIGHT_INTERVAL=60            # Seconds between auto-insights
 
 # Server Settings

@@ -13,7 +13,7 @@ import google.generativeai as genai
 class GeminiConfig:
     """Configuration for Gemini API integration."""
     
-    model: str = "gemini-2.5-pro-002"  # Using 2.5 Pro for higher rate limits
+    model: str = "gemini-2.0-flash-lite"  # Using 2.0 Flash-Lite for better rate limits
     temperature: float = 0.3
     max_tokens: int = 2048
     context_window_minutes: int = 5  # DEPRECATED - we use full transcript now
