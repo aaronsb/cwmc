@@ -27,6 +27,9 @@ class MessageType(Enum):
     INSIGHT = "insight"
     SUGGESTED_QUESTIONS = "suggested_questions"
     INTENT = "intent"
+    RECORDING_CONTROL = "recording_control"
+    RECORDING_STATUS = "recording_status"
+    STATUS_REQUEST = "status_request"
 
 
 class ConnectionState(Enum):
@@ -264,6 +267,10 @@ class WebSocketHandler:
                 await self._handle_question(websocket, data)
             elif message_type == MessageType.INTENT.value:
                 await self._handle_intent(websocket, data)
+            elif message_type == MessageType.RECORDING_CONTROL.value:
+                await self._handle_recording_control(websocket, data)
+            elif message_type == MessageType.STATUS_REQUEST.value:
+                await self._handle_status_request(websocket, data)
             else:
                 await self._send_error(websocket, f"Unknown message type: {message_type}", data.get("request_id"))
                 
@@ -363,6 +370,64 @@ class WebSocketHandler:
         except Exception as e:
             await self._send_error(websocket, f"Failed to update intent: {e}", None)
     
+    async def _handle_recording_control(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle recording control from client."""
+        try:
+            action = data.get("content", {}).get("action", "").strip()
+            print(f"🎙️ Recording control request: '{action}' for session {self.current_session_id}")
+            
+            if action not in ["start", "stop"]:
+                await self._send_error(websocket, f"Invalid recording action: {action}", None)
+                return
+            
+            # Forward the request to the server for handling
+            if self.server and hasattr(self.server, 'handle_recording_control'):
+                success = await self.server.handle_recording_control(action)
+                
+                # Send status update
+                status_msg = {
+                    "type": MessageType.STATUS.value,
+                    "message": f"Recording {'started' if action == 'start' else 'stopped'}",
+                    "timestamp": datetime.now().isoformat()
+                }
+                await websocket.send(json.dumps(status_msg))
+                
+                # Broadcast recording status to all clients
+                recording_status = {
+                    "type": MessageType.RECORDING_STATUS.value,
+                    "content": {
+                        "recording": action == "start",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                }
+                await self.server.broadcast_message(recording_status)
+                
+            else:
+                await self._send_error(websocket, "Recording control not available", None)
+                
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to control recording: {e}", None)
+    
+    async def _handle_status_request(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle status request from client."""
+        try:
+            request_type = data.get("content", "")
+            
+            if request_type == "recording_status":
+                # Send current recording status
+                recording_status = {
+                    "type": MessageType.RECORDING_STATUS.value,
+                    "content": {
+                        "recording": self.server.recording_enabled if self.server else True,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                }
+                await websocket.send(json.dumps(recording_status))
+                print(f"📤 Sent recording status: {self.server.recording_enabled if self.server else True}")
+            
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to handle status request: {e}", None)
+    
     async def _send_error(self, websocket, error_message: str, request_id: Optional[str]) -> None:
         """Send error message to client."""
         message = {
@@ -388,6 +453,14 @@ class WebSocketHandler:
         
         if message_type == MessageType.INTENT.value:
             return "content" in data  # Intent can be empty string to clear
+        
+        if message_type == MessageType.RECORDING_CONTROL.value:
+            return ("content" in data and 
+                    isinstance(data["content"], dict) and 
+                    "action" in data["content"])
+        
+        if message_type == MessageType.STATUS_REQUEST.value:
+            return "content" in data  # Status request content can be any string
         
         return True
     
@@ -484,6 +557,8 @@ class LiveQAServer:
         self.start_time: Optional[datetime] = None
         self.active_connections: Set = set()
         self.current_intent: str = ""  # Global intent for all sessions
+        self.recording_enabled: bool = True  # Recording state
+        self.main_app = None  # Reference to main application
         
         # Find the web interface file
         self.interface_file_path = self._find_web_interface_file()
@@ -722,6 +797,50 @@ class LiveQAServer:
                 import traceback
                 traceback.print_exc()
                 await asyncio.sleep(15)  # Continue after error
+    
+    async def handle_recording_control(self, action: str) -> bool:
+        """Handle recording control requests from web interface."""
+        try:
+            if action == "start":
+                if self.recording_enabled:
+                    print("⚠️  Recording is already enabled")
+                    return True
+                
+                self.recording_enabled = True
+                print("🎙️ Recording enabled via web interface")
+                
+                # Notify main app to resume processing if available
+                if self.main_app and hasattr(self.main_app, 'resume_recording'):
+                    await self.main_app.resume_recording()
+                
+                return True
+                
+            elif action == "stop":
+                if not self.recording_enabled:
+                    print("⚠️  Recording is already disabled")
+                    return True
+                
+                self.recording_enabled = False
+                print("🛑 Recording disabled via web interface")
+                
+                # Notify main app to pause processing if available
+                if self.main_app and hasattr(self.main_app, 'pause_recording'):
+                    await self.main_app.pause_recording()
+                
+                return True
+            
+            else:
+                print(f"❌ Invalid recording action: {action}")
+                return False
+                
+        except Exception as e:
+            print(f"💥 Error handling recording control: {e}")
+            return False
+    
+    def set_main_app(self, main_app) -> None:
+        """Set reference to main application for recording control."""
+        self.main_app = main_app
+        print("🔗 Main app reference set for recording control")
 
 
 # Utility functions

@@ -40,6 +40,9 @@ class LiveTranscriptsApp:
         # Tasks
         self.tasks = []
         
+        # Recording state
+        self.recording_paused: bool = False
+        
         # Statistics
         self.start_time: Optional[datetime] = None
         self.stats = {
@@ -165,6 +168,9 @@ class LiveTranscriptsApp:
             self.tasks.append(insight_task)
             print("✓ Automated insights started")
             
+            # Set up recording control connection
+            self.qa_server.set_main_app(self)
+            
             # Start Q&A server
             server_task = asyncio.create_task(self.qa_server.start())
             self.tasks.append(server_task)
@@ -235,6 +241,11 @@ class LiveTranscriptsApp:
         """Main audio processing loop."""
         try:
             while self.is_running:
+                # Skip processing if recording is paused
+                if self.recording_paused:
+                    await asyncio.sleep(0.1)  # Longer delay when paused
+                    continue
+                
                 # Get audio data
                 audio_data = self.audio_capture.get_audio_data()
                 
@@ -274,6 +285,16 @@ class LiveTranscriptsApp:
                 
         except Exception as e:
             print(f"Intent sync error: {e}")
+    
+    async def pause_recording(self) -> None:
+        """Pause audio recording and processing."""
+        self.recording_paused = True
+        print("⏸️ Recording paused - audio processing stopped")
+    
+    async def resume_recording(self) -> None:
+        """Resume audio recording and processing."""
+        self.recording_paused = False
+        print("▶️ Recording resumed - audio processing active")
     
     async def _on_transcription_result(self, result) -> None:
         """Handle new transcription result."""
