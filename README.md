@@ -247,7 +247,7 @@ MIN_BATCH_DURATION=3      # Minimum seconds before transcribing
 MAX_BATCH_DURATION=30     # Maximum seconds to wait
 
 # Q&A Settings
-GEMINI_MODEL=gemini-2.0-flash-exp  # Google AI model (latest)
+GEMINI_MODEL=gemini-2.5-pro-002  # Google AI model (higher rate limits)
 INSIGHT_INTERVAL=60            # Seconds between auto-insights
 
 # Server Settings
@@ -276,6 +276,12 @@ SERVER_PORT=8765         # Server port
 - Verify your API keys are correctly copied to the `.env` file
 - Ensure OpenAI key starts with `sk-`
 - Test your Google AI key at https://aistudio.google.com/
+
+### **"Rate limit errors from Gemini API"**
+- Live Transcripts uses Gemini 2.5 Pro for higher rate limits
+- If you still hit limits, consider reducing `INSIGHT_INTERVAL` in your `.env` file
+- Free tier: 2 requests per minute | Paid tier: 1000 requests per minute
+- Monitor usage at https://aistudio.google.com/
 
 ### **"WebSocket connection failed"**
 - Make sure the application is running

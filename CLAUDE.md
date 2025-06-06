@@ -87,6 +87,7 @@ make dev-setup      # Complete development environment setup
 ### API Dependencies
 - OpenAI API key required for Whisper transcription
 - Google AI API key required for Gemini Q&A and insights
+- Uses Gemini 2.5 Pro (gemini-2.5-pro-002) for higher rate limits and better performance
 - Set via environment variables: `OPENAI_API_KEY`, `GOOGLE_API_KEY`
 
 ### Platform-Specific Notes
