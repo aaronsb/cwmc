@@ -13,6 +13,54 @@ Live Transcripts captures your meeting audio in real-time, transcribes it instan
 - **💡 Smart Insights**: Automatically generates meeting summaries, action items, and follow-up questions
 - **🔄 No Meeting Interruption**: Works silently in the background without disrupting your meetings
 
+## 💼 Key Use Cases
+
+Live Transcripts transforms how you handle different types of conversations by adapting to your specific goals using the **Session Focus** feature:
+
+### 📞 **Sales Calls**
+Set your intent to *"Identify objections and buying signals"* and Live Transcripts will:
+- Generate questions focused on uncovering customer concerns
+- Highlight action items around follow-ups and next steps
+- Surface insights about pricing discussions and decision-making timelines
+- Help you ask better qualifying questions in real-time
+
+### 🤝 **Relationship Building & Networking**
+Use *"Find common interests and collaboration opportunities"* as your focus:
+- Questions will center on shared experiences and mutual connections
+- Insights emphasize relationship-building moments and future touchpoints
+- Action items focus on meaningful follow-up opportunities
+- Discover conversation threads that strengthen professional relationships
+
+### 🏛️ **Policy Debates & Decision Making**
+Set your intent to *"Track arguments and identify logical gaps"*:
+- Questions highlight inconsistencies and areas needing clarification
+- Insights focus on pros/cons analysis and decision criteria
+- Action items center on research needs and follow-up discussions
+- Help identify when consensus is forming or breaking down
+
+### 🎙️ **Interviews & Podcasts**
+Focus on *"Find compelling story angles and follow-up questions"*:
+- Dynamic questions reveal deeper narrative opportunities
+- Insights highlight quotable moments and key themes
+- Action items track fact-checking needs and additional topics to explore
+- Help maintain conversational flow while capturing content gold
+
+### 📊 **Board Meetings & Executive Sessions**
+Use *"Monitor fiduciary responsibilities and strategic risks"*:
+- Questions focus on governance issues and strategic implications
+- Insights emphasize financial impacts and compliance considerations
+- Action items prioritize regulatory requirements and strategic initiatives
+- Track decision rationale for accurate board minutes
+
+### 🎓 **Training Sessions & Workshops**
+Set your intent to *"Identify learning gaps and engagement opportunities"*:
+- Questions highlight areas where participants need clarification
+- Insights focus on knowledge transfer effectiveness and engagement levels
+- Action items center on follow-up training needs and resource requirements
+- Help ensure key learning objectives are being met
+
+**💡 Pro Tip**: Change your Session Focus during the meeting to adapt to evolving conversation dynamics. Start with one intent and switch to another as topics shift!
+
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
