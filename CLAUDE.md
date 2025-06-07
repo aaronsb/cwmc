@@ -4,41 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains a live meeting transcription and interaction system that:
-- Captures system audio in real-time from meetings/calls
-- Uses OpenAI Whisper API for transcription with intelligent batching
-- Integrates with Gemini API for live Q&A and automated insights
-- Provides true real-time interaction capabilities during ongoing meetings
+Live Transcripts is a real-time meeting transcription and AI-powered Q&A system that captures system audio, transcribes it using OpenAI's Whisper API, and provides live interaction capabilities through Google's Gemini API. The system features cross-platform support (macOS, Windows, Linux) with a focus on real-time processing and user interaction.
 
-## Architecture
+### Recent Updates (June 2025)
 
-**Core Components:**
-- Audio capture layer with platform-specific system audio loopback
-- VAD-based intelligent batching (silence detection to preserve word boundaries)
-- Async Whisper API integration with context preservation
-- Gemini API integration for live Q&A and batch insights
-- WebSocket-based real-time UI
+- **Audio Backend Abstraction Layer**: Implemented a clean abstraction layer for audio capture with support for multiple backends:
+  - Linux: PipeWire (recommended), PulseAudio, SoundDevice, PyAudio
+  - macOS: BlackHole, CoreAudio, SoundDevice, PyAudio  
+  - Windows: WASAPI, SoundDevice, PyAudio
+- **Profile-Based Configuration**: Simplified configuration system with OS-specific profiles (macos, linux, windows)
+- **Enhanced Setup Scripts**: Comprehensive `configure.sh` with OS-specific sub-configurators for Linux audio backend selection
+- **Fixed Dependencies**: Added PyYAML to dependencies for configuration support
 
-**Key Design Principles:**
-- Local-first architecture (all processing on-device except API calls)
-- Variable batch sizing triggered by silence detection (3-30 second range)
-- Rolling context window for AI processing
-- Cross-platform compatibility (macOS, Windows, Linux)
+## Common Development Commands
 
-## Development Workflow
+### Build & Setup
+```bash
+make install-dev       # Install with development dependencies
+make dev-setup         # Complete development environment setup
+```
 
-### Test-Driven Development (TDD)
-This project follows TDD principles with comprehensive test coverage:
-
-**Test Structure:**
-- `tests/test_audio_capture.py` - Cross-platform audio capture and VAD testing
-- `tests/test_batching.py` - Intelligent batching with silence detection
-- `tests/test_whisper_integration.py` - OpenAI Whisper API integration
-- `tests/test_gemini_integration.py` - Google Gemini API and context management
-- `tests/test_live_qa.py` - WebSocket Q&A server and session management
-- `tests/conftest.py` - Shared fixtures and test utilities
-
-**Running Tests:**
+### Testing
 ```bash
 make test              # Run all tests
 make test-unit         # Unit tests only
@@ -49,168 +35,93 @@ make test-audio        # Audio-specific tests
 
 ### Code Quality
 ```bash
-make format      # Format code with black and isort
-make lint        # Run flake8 linting
-make type-check  # Run mypy type checking
-make check       # Run all quality checks
+make format            # Format code with black and isort
+make lint              # Run flake8 linting
+make type-check        # Run mypy type checking
+make check             # Run all quality checks (format, lint, type-check, test-unit)
 ```
 
-### Development Setup
+### Running the Application
 ```bash
-make install-dev    # Install with development dependencies
-make dev-setup      # Complete development environment setup
+make run               # Run full application (python -m src.livetranscripts.main)
+make run-server        # Run Q&A server only (python -m src.livetranscripts.server)
 ```
 
-### Implementation Guidelines
+## High-Level Architecture
 
-**Module Structure:**
-- `src/livetranscripts/audio_capture.py` - AudioCapture, PlatformAudioCapture classes
-- `src/livetranscripts/batching.py` - VADAudioBatcher, SilenceDetector, BatchQueue
-- `src/livetranscripts/whisper_integration.py` - WhisperClient, TranscriptionResult
-- `src/livetranscripts/gemini_integration.py` - GeminiClient, QAHandler, ContextManager
-- `src/livetranscripts/live_qa.py` - LiveQAServer, WebSocketHandler, SessionManager
+The system follows a pipeline architecture:
 
-**Key Classes to Implement:**
-1. `AudioCapture` with platform-specific implementations (macOS/Windows/Linux)
-2. `VADAudioBatcher` with silence detection and variable batch sizing
-3. `WhisperClient` with retry logic and async processing
-4. `QAHandler` with rolling context window management
-5. `LiveQAServer` with WebSocket support for real-time Q&A
-
-**Testing Approach:**
-- All classes have corresponding test files with comprehensive coverage
-- Mock external APIs (OpenAI, Google) for unit tests
-- Use realistic audio data and meeting scenarios in tests
-- Test error conditions, timeouts, and edge cases
-- Verify cross-platform compatibility
-
-### API Dependencies
-- OpenAI API key required for Whisper transcription
-- Google AI API key required for Gemini Q&A and insights
-- Uses Gemini 2.0 Flash-Lite (gemini-2.0-flash-lite) for optimized rate limits and fast responses
-- Set via environment variables: `OPENAI_API_KEY`, `GOOGLE_API_KEY`
-
-### Platform-Specific Notes
-- **macOS**: Requires BlackHole virtual audio driver for system audio capture
-- **Windows**: Uses WASAPI loopback mode (built-in)
-- **Linux**: Requires PulseAudio for system audio capture
-
-### Audio Processing Requirements
-- 16kHz sample rate (optimized for Whisper)
-- Mono audio (single channel)
-- VAD threshold: 500ms silence detection
-- Batch range: 3-30 seconds with 0.5s overlap
-- Ring buffer: 10 seconds for resilient streaming
-
-## Implementation Status
-
-✅ **COMPLETED MODULES** (Ready for testing):
-- `audio_capture.py` - Cross-platform audio capture with macOS/Windows/Linux support
-- `batching.py` - VAD-based intelligent batching with silence detection
-- `whisper_integration.py` - OpenAI Whisper API client with retry logic
-- `gemini_integration.py` - Google Gemini API integration with context management
-- `live_qa.py` - WebSocket server for real-time Q&A
-- `main.py` - Complete application orchestration
-- `server.py` - Standalone Q&A server mode
-
-🧪 **TESTING STATUS**: 
-- ✅ Comprehensive test suite implemented (TDD approach)
-- ✅ Full system tested and verified working
-- ✅ Both OpenAI and Google APIs tested successfully
-- ✅ Audio processing pipeline validated
-- ✅ Q&A and insights generation working
-- ✅ WebSocket server functional
-- ✅ Complete user workflow tested
-- 🔄 Run `make test` to execute full test suite against implementations
-
-🚀 **READY TO RUN**:
-```bash
-# Set up environment
-export OPENAI_API_KEY="your-openai-key"
-export GOOGLE_API_KEY="your-google-key"
-
-# Install dependencies
-make install-dev
-
-# Run full application
-python -m src.livetranscripts.main
-
-# Or run Q&A server only
-python -m src.livetranscripts.server
-```
-
-## Implementation Details
-
-**Key Features Implemented:**
-- ✅ Real-time system audio capture (BlackHole/WASAPI/PulseAudio)
-- ✅ Intelligent VAD-based batching (3-30s with silence detection)
-- ✅ Async Whisper API integration with retry logic
-- ✅ Rolling context window for Gemini AI processing
-- ✅ WebSocket server for live Q&A
-- ✅ **Dynamic contextual questions** - AI-generated questions that adapt to meeting content every 15 seconds
-- ✅ Automated insight generation (summaries, action items, questions)
-- ✅ Modern, sleek UI inspired by Atlassian design system
-- ✅ Session management and error handling
-- ✅ Cross-platform compatibility
-
-**Architecture Flow:**
 ```
 Audio Capture → VAD Batching → Whisper API → Context Manager → 
 → [Gemini Q&A | Automated Insights | Dynamic Questions] → WebSocket Clients
 ```
 
-**Full Transcript Context System:**
-- **ALL Gemini API calls use the COMPLETE transcript from meeting start**
-- No rolling window - leverages Gemini's 2M token context window
-- Context accumulates throughout the meeting for comprehensive understanding
-- Q&A can reference any part of the meeting, not just recent discussion
-- Insights generated with full meeting context for better accuracy
-- Contextual questions consider all topics discussed, not just recent ones
+### Core Components
 
-**Dynamic Questions System:**
-- Background task generates contextual questions every 15 seconds
-- Uses FULL transcript history (not just recent context) via Gemini API
-- WebSocket broadcasts `suggested_questions` message type
-- Client-side rotation updates one question slot at a time
-- Smooth fade-out/fade-in animations for seamless UX
-- "Summarize recent discussion" always remains available
+1. **Audio Capture Layer** (`audio_capture.py`)
+   - Platform-specific implementations for macOS (BlackHole), Windows (WASAPI), Linux (PulseAudio)
+   - 16kHz mono audio capture optimized for speech recognition
+   - Ring buffer for resilient streaming
 
-**Entry Points:**
-- `main.py` - Full live transcription system
-- `server.py` - Standalone Q&A server (no audio capture)
+2. **Intelligent Batching** (`batching.py`)
+   - Voice Activity Detection (VAD) with silence detection
+   - Variable batch sizing (3-30 seconds) triggered by 500ms silence
+   - Preserves word boundaries for accurate transcription
 
-**Configuration Options:**
-- Audio: sample rate, chunk size, buffer duration
-- Batching: min/max duration, silence threshold, overlap
-- APIs: model selection, temperature, timeouts
-- Server: host, port, session limits
+3. **Transcription** (`whisper_integration.py`)
+   - OpenAI Whisper API integration with retry logic
+   - Async processing for non-blocking operation
+   - Context preservation across batches
 
-## Next Steps for Development
+4. **AI Integration** (`gemini_integration.py`)
+   - Google Gemini API (2.0 Flash-Lite model) for Q&A and insights
+   - Full transcript context (2M token window) - no rolling window
+   - Dynamic contextual questions generated every 15 seconds
+   - Session focus/intent customization
 
-🔧 **Testing & Validation:**
-1. Run test suite: `make test`
-2. Fix any implementation issues revealed by tests
-3. Test with real audio input
-4. Validate API integrations
+5. **Real-time Interface** (`live_qa.py`, `web_interface.html`)
+   - WebSocket server for live Q&A
+   - Modern, glassified UI design
+   - Pinned Q&A cards feature
+   - Session management
 
-📊 **Monitoring & Observability:**
-- Application provides real-time statistics
-- Health checks for all components
-- Error handling and recovery mechanisms
+### Key Architectural Decisions
 
-🎛️ **Configuration & Deployment:**
-- Environment-based configuration
-- Docker containerization (optional)
-- Platform-specific audio driver setup
+1. **Local-First Processing:** All audio processing happens on-device; only API calls go to cloud services
+2. **Full Context Window:** Gemini uses complete transcript history (not rolling window) for comprehensive understanding
+3. **Modular Design:** Clear separation between audio capture, transcription, AI processing, and UI layers
+4. **Async Architecture:** Non-blocking async operations throughout for real-time performance
+5. **Cross-Platform Support:** Abstract base classes with platform-specific implementations
+6. **WebSocket Communication:** Real-time bidirectional communication between server and web clients
+7. **Session-Based Focus:** Users can set meeting intent/focus to customize AI behavior dynamically
 
 ## Development Context
 
-- When doing searches, remember that the current month is June 2025.
-- Focus on minimum viable design principles
-- Prioritize robust, resilient, portable architecture
-- Implementation complete - now in testing/refinement phase
-- Follow existing patterns when adding new functionality
+### API Requirements
+- `OPENAI_API_KEY` - Required for Whisper transcription
+- `GOOGLE_API_KEY` - Required for Gemini Q&A and insights
+- Uses Gemini 2.0 Flash-Lite (gemini-2.0-flash-lite) for optimized rate limits
 
-## Development Guidance
+### Platform-Specific Setup
+- **macOS**: Requires BlackHole virtual audio driver for system audio capture
+- **Windows**: Uses built-in WASAPI loopback
+- **Linux**: Requires PulseAudio
 
-- Make sure that you always update your claude.md after every major milestone is passed
+### Test-Driven Development
+The project follows TDD with comprehensive test coverage. Tests use mocked external dependencies for unit testing and include categories: unit, integration, slow, api, audio.
+
+### Entry Points
+- `main.py` - Full system with audio capture
+- `server.py` - Standalone Q&A server mode (no audio capture)
+
+## Implementation Status
+
+The system is fully implemented and tested. All core modules are complete:
+- Cross-platform audio capture
+- VAD-based intelligent batching
+- Whisper and Gemini API integrations
+- WebSocket server for real-time Q&A
+- Dynamic contextual questions
+- Modern UI with pinned Q&A cards
+
+Run `make test` to verify the implementation and `make run` to start the application.

@@ -84,6 +84,12 @@ run:
 run-server:
 	python -m src.livetranscripts.server
 
+dev-run:
+	./scripts/dev-run.sh
+
+dev:
+	./scripts/dev-run.sh
+
 run-tests-watch:
 	pytest-watch tests/ -- -v
 
