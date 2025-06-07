@@ -148,8 +148,9 @@ class LiveTranscriptsApp:
         
         # Start components
         try:
-            # Start audio capture
-            self.audio_capture.start_capture()
+            # Initialize and start audio capture
+            await self.audio_capture.initialize()
+            await self.audio_capture.start_capture()
             print("✓ Audio capture started")
             
             # Start batch processing
@@ -224,7 +225,7 @@ class LiveTranscriptsApp:
             print("✓ Batch processing stopped")
         
         if self.audio_capture:
-            self.audio_capture.stop_capture()
+            await self.audio_capture.stop_capture()
             print("✓ Audio capture stopped")
         
         # Cancel remaining tasks
@@ -247,11 +248,16 @@ class LiveTranscriptsApp:
                     continue
                 
                 # Get audio data
-                audio_data = self.audio_capture.get_audio_data()
-                
-                if audio_data is not None:
+                try:
+                    audio_chunk = await asyncio.wait_for(
+                        self.audio_capture.get_audio_chunk(),
+                        timeout=0.1
+                    )
                     # Process through batching system
-                    await self.batch_processor.process_audio_chunk(audio_data)
+                    await self.batch_processor.process_audio_chunk(audio_chunk.data)
+                except asyncio.TimeoutError:
+                    # No audio available, continue
+                    await asyncio.sleep(0.01)
                     self.stats['audio_chunks_processed'] += 1
                     
                     # Check for new batches

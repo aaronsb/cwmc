@@ -1,0 +1,144 @@
+# Live Transcripts Configuration Example
+# 
+# This file shows all available configuration options.
+# Copy this to config.yaml and customize as needed.
+#
+# Configuration priority (highest to lowest):
+# 1. Environment variables (LT_* prefix)
+# 2. config.yaml in current directory
+# 3. ~/.config/livetranscripts/config.yaml (Linux)
+#    ~/Library/Application Support/LiveTranscripts/config.yaml (macOS)
+#    %APPDATA%/LiveTranscripts/config.yaml (Windows)
+# 4. Profile defaults (macos, linux, windows)
+# 5. Built-in defaults
+
+# Select a configuration profile
+# Available profiles: macos, linux, windows, development, production
+# If not specified, will auto-detect based on your platform
+profile: auto  # or specify: macos, linux, windows
+
+# Audio capture settings
+audio:
+  # Backend selection - which audio system to use
+  # Options: auto, pipewire, pulseaudio, pyaudio, sounddevice, wasapi, coreaudio, blackhole
+  backend_preference: auto
+  
+  # Allow fallback to other backends if preferred isn't available
+  backend_fallback_enabled: true
+  
+  # Audio parameters
+  sample_rate: 16000      # Hz - 16kHz is optimal for speech
+  channels: 1             # 1 = mono, 2 = stereo
+  format: int16           # int16 or float32
+  chunk_size: 1024        # Samples per chunk
+  buffer_duration: 10.0   # Seconds of audio to buffer
+  latency_mode: low       # low, normal, or high
+  
+  # Device selection
+  device_name: null       # null = auto-select, or specify device name
+  device_auto_select: true
+  prefer_monitor_devices: true  # Prefer monitor/loopback devices
+  
+  # Audio processing
+  enable_noise_reduction: false
+  enable_auto_gain: false
+  silence_threshold: 500.0
+
+# Transcription settings
+transcription:
+  # OpenAI Whisper settings
+  whisper_model: whisper-1
+  whisper_language: null    # null = auto-detect, or specify: en, es, fr, etc.
+  whisper_prompt: null      # Optional prompt to guide transcription
+  
+  # Batching configuration
+  min_batch_duration: 3.0   # Minimum seconds before sending to API
+  max_batch_duration: 30.0  # Maximum seconds to wait
+  silence_duration_threshold: 0.5  # Seconds of silence to trigger batch
+  batch_overlap: 0.5        # Seconds of overlap between batches
+  
+  # API settings
+  api_timeout: 30.0
+  max_retries: 3
+  retry_delay: 1.0
+
+# AI integration settings
+ai:
+  # Google Gemini settings
+  gemini_model: gemini-2.0-flash-lite
+  gemini_temperature: 0.7
+  gemini_max_tokens: 1024
+  
+  # Context management
+  use_full_context: true    # Use full transcript vs rolling window
+  max_context_tokens: 1000000
+  
+  # Features
+  enable_insights: true
+  insight_interval: 60.0    # Seconds between insight generation
+  enable_dynamic_questions: true
+  question_update_interval: 15.0
+  num_dynamic_questions: 4
+  
+  # Session settings
+  default_session_focus: null  # Or set a default like "Identify action items"
+
+# Server settings
+server:
+  host: localhost
+  port: 8765
+  enable_cors: true
+  cors_origins:
+    - "http://localhost:*"
+    - "http://127.0.0.1:*"
+  
+  # WebSocket settings
+  ws_ping_interval: 30.0
+  ws_ping_timeout: 10.0
+  ws_max_message_size: 10485760  # 10MB
+  
+  # Session management
+  max_sessions: 10
+  session_timeout: 3600.0  # 1 hour
+
+# Logging settings
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/livetranscripts.log  # null to disable file logging
+  console: true
+  rotate_logs: true
+  max_log_size: 10485760  # 10MB
+  backup_count: 5
+
+# Path configuration (usually auto-detected from profile)
+# Uncomment to override
+# paths:
+#   config_dir: ~/.config/livetranscripts
+#   log_dir: ~/.local/share/livetranscripts/logs
+#   cache_dir: ~/.cache/livetranscripts
+
+# Development settings
+debug: false
+profile: false  # Enable profiling
+
+# Environment variable overrides
+# You can override any setting with environment variables:
+# 
+# LT_PROFILE=linux
+# LT_AUDIO_BACKEND=pipewire
+# LT_AUDIO_SAMPLE_RATE=48000
+# LT_AUDIO_DEVICE="My USB Microphone"
+# LT_AUDIO_LATENCY=normal
+# LT_WHISPER_MODEL=whisper-1
+# LT_WHISPER_LANGUAGE=en
+# LT_MIN_BATCH_DURATION=2.0
+# LT_MAX_BATCH_DURATION=20.0
+# LT_GEMINI_MODEL=gemini-2.0-flash-lite
+# LT_INSIGHT_INTERVAL=30.0
+# LT_QUESTION_INTERVAL=10.0
+# LT_SERVER_HOST=0.0.0.0
+# LT_SERVER_PORT=8080
+# LT_LOG_LEVEL=DEBUG
+# LT_LOG_FILE=/var/log/livetranscripts.log
+# LT_DEBUG=true

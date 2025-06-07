@@ -61,7 +61,35 @@ Set your intent to *"Identify learning gaps and engagement opportunities"*:
 
 **💡 Pro Tip**: Change your Session Focus during the meeting to adapt to evolving conversation dynamics. Start with one intent and switch to another as topics shift!
 
-## 🚀 Quick Start Guide
+## 🆘 Quick Start
+
+**One-line setup:**
+```bash
+curl -sSL https://raw.githubusercontent.com/aaronsb/cwmc/master/scripts/quick-setup.sh | bash
+```
+
+**Or manually:**
+```bash
+# 1. Clone and enter the repository
+git clone https://github.com/aaronsb/cwmc.git
+cd cwmc
+
+# 2. Run the automated configuration
+./scripts/configure.sh
+
+# 3. Start transcribing!
+./scripts/dev-run.sh
+```
+
+The configuration script will:
+- ✅ Check Python version and dependencies
+- ✅ Set up virtual environment
+- ✅ Install all required packages
+- ✅ Configure API keys
+- ✅ Set up audio backend (with device selection on Linux)
+- ✅ Create platform-specific configuration
+
+## 🚀 Detailed Setup Guide
 
 ### Prerequisites
 
@@ -146,15 +174,40 @@ Choose your operating system:
 No additional setup needed! Windows has built-in audio loopback support.
 
 #### 🐧 **Linux Users**
-Install PulseAudio development files:
+Install audio dependencies:
 ```bash
+# For Debian/Ubuntu:
 sudo apt-get install portaudio19-dev pulseaudio
+
+# For Arch Linux:
+sudo pacman -S portaudio pulseaudio
+
+# For Fedora:
+sudo dnf install portaudio-devel pulseaudio
 ```
+
+**Configure Audio Device** (optional):
+```bash
+# List available audio devices
+./scripts/list-audio-devices.sh
+
+# Select a specific device for capture
+./scripts/configure-audio-device.sh
+```
+
+💡 **Tip**: For meeting transcription, select a `.monitor` device to capture system audio.
 
 ### Step 4: Run Live Transcripts
 
 1. **Start the application**:
    ```bash
+   # For development (recommended - shows all logs)
+   ./scripts/dev-run.sh
+   
+   # Or use make
+   make dev
+   
+   # Or run directly
    python -m src.livetranscripts.main
    ```
 
@@ -322,6 +375,42 @@ Yes! Just make sure to:
 
 ### **Do I need to change audio settings every time?**
 No, once configured, just leave "Live Transcripts Setup" as your default output. It works for all scenarios - speakers, wired headphones, or Bluetooth devices.
+
+## 🛠️ Available Scripts
+
+The project includes several helpful scripts in the `scripts/` directory:
+
+### Configuration Scripts
+- **`configure.sh`** - Main setup script that handles everything
+- **`configure-linux.sh`** - Linux-specific audio backend configuration
+- **`configure-windows.sh`** - Windows-specific setup
+- **`configure-macos.sh`** - macOS-specific setup (placeholder)
+- **`configure-audio-device.sh`** - Select specific audio input/output devices
+
+### Running Scripts  
+- **`dev-run.sh`** - Run in development mode with full logging (recommended)
+- **`run.sh`** - Alias for dev-run.sh
+- **`start.sh`** - Start the service in background
+- **`stop.sh`** - Stop the background service
+
+### Utility Scripts
+- **`list-audio-devices.sh`** - List all available audio devices
+- **`check-env.sh`** - Verify environment and dependencies
+
+### Usage Examples
+```bash
+# Initial setup
+./scripts/configure.sh
+
+# Run with live logs (Ctrl+C to stop)
+./scripts/dev-run.sh
+
+# List audio devices
+./scripts/list-audio-devices.sh
+
+# Change audio device
+./scripts/configure-audio-device.sh
+```
 
 ## 📞 Support
 
