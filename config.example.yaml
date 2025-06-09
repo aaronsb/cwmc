@@ -46,7 +46,12 @@ audio:
 
 # Transcription settings
 transcription:
-  # OpenAI Whisper settings
+  # Model selection (NEW: GPT-4o support!)
+  transcription_model: gpt-4o-transcribe  # gpt-4o-transcribe, gpt-4o-mini-transcribe, or whisper-1
+  model_fallback:                         # Automatic fallback models
+    - whisper-1
+  
+  # Legacy Whisper settings (for backward compatibility)
   whisper_model: whisper-1
   whisper_language: null    # null = auto-detect, or specify: en, es, fr, etc.
   whisper_prompt: null      # Optional prompt to guide transcription
@@ -130,6 +135,7 @@ profile: false  # Enable profiling
 # LT_AUDIO_SAMPLE_RATE=48000
 # LT_AUDIO_DEVICE="My USB Microphone"
 # LT_AUDIO_LATENCY=normal
+# LT_TRANSCRIPTION_MODEL=gpt-4o-transcribe
 # LT_WHISPER_MODEL=whisper-1
 # LT_WHISPER_LANGUAGE=en
 # LT_MIN_BATCH_DURATION=2.0

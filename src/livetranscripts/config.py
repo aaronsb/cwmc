@@ -74,7 +74,11 @@ class AudioConfig:
 class TranscriptionConfig:
     """Transcription configuration."""
     
-    # Whisper settings
+    # Model selection
+    transcription_model: str = "gpt-4o-transcribe"
+    model_fallback: List[str] = field(default_factory=lambda: ["whisper-1"])
+    
+    # Whisper settings (legacy, kept for backward compatibility)
     whisper_model: str = "whisper-1"
     whisper_language: Optional[str] = None  # Auto-detect if None
     whisper_prompt: Optional[str] = None
@@ -89,6 +93,17 @@ class TranscriptionConfig:
     api_timeout: float = 30.0
     max_retries: int = 3
     retry_delay: float = 1.0
+    
+    def __post_init__(self):
+        """Validate configuration."""
+        supported_models = ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]
+        if self.transcription_model not in supported_models:
+            raise ValueError(f"Unsupported transcription model: {self.transcription_model}")
+        
+        # Validate fallback models
+        for model in self.model_fallback:
+            if model not in supported_models:
+                raise ValueError(f"Unsupported fallback model: {model}")
 
 
 @dataclass
@@ -229,6 +244,8 @@ class ConfigProfile:
             "silence_threshold": 500.0
         },
         "transcription": {
+            "transcription_model": "gpt-4o-transcribe",
+            "model_fallback": ["whisper-1"],
             "whisper_model": "whisper-1",
             "min_batch_duration": 3.0,
             "max_batch_duration": 30.0,

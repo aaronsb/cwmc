@@ -1,0 +1,23 @@
+# Live Transcripts Configuration
+# Force use of BlackHole for system audio capture
+
+audio:
+  device_name: "BlackHole 2ch"  # Force BlackHole for system audio
+  device_auto_select: false     # Don't auto-select
+  prefer_monitor_devices: true
+  backend_preference: auto
+  sample_rate: 16000
+  channels: 1                   # Convert stereo to mono
+  chunk_size: 1024
+  buffer_duration: 10.0
+
+transcription:
+  transcription_model: "gpt-4o-transcribe"
+  model_fallback: ["whisper-1"]
+  min_batch_duration: 3.0
+  max_batch_duration: 30.0
+  silence_duration_threshold: 0.5
+
+logging:
+  level: "INFO"
+  console: true
