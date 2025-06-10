@@ -380,6 +380,23 @@
             font-size: 14px;
         }
         
+        .flowing-transcript {
+            padding: 0 24px;
+            color: var(--color-neutral-800);
+            line-height: 1.8;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .flowing-transcript:first-child {
+            padding-top: 24px;
+        }
+        
+        .flowing-transcript:last-child {
+            padding-bottom: 24px;
+        }
+        
         .insight-item {
             padding: 16px 20px;
             margin: 8px 16px;
@@ -905,6 +922,13 @@
         let intentUpdateTimeout = null;
         let isRecording = false;
         
+        // Typing animation state
+        let fullTranscriptText = '';
+        let displayedCharIndex = 0;
+        let isTyping = false;
+        let typingSpeed = 15; // milliseconds per character
+        let pendingInsights = [];
+        
         function connectWebSocket() {
             // Use the same hostname but WebSocket port (8765)
             const wsUrl = `ws://${window.location.hostname}:8765`;
@@ -981,60 +1005,115 @@
         
         function addTranscript(transcript) {
             transcripts.push(transcript);
-            updateTranscriptDisplay();
+            // Add text to the full transcript (with a space to separate chunks)
+            if (fullTranscriptText.length > 0 && !fullTranscriptText.endsWith(' ')) {
+                fullTranscriptText += ' ';
+            }
+            fullTranscriptText += transcript.text;
+            
+            // Start typing animation if not already running
+            if (!isTyping) {
+                startTypingAnimation();
+            }
         }
         
         function addInsight(insight) {
             insights.push(insight);
-            updateTranscriptDisplay();
+            // Store timestamp with insight for proper placement
+            const insertPosition = fullTranscriptText.length;
+            pendingInsights.push({
+                ...insight,
+                insertPosition: insertPosition
+            });
         }
         
-        function updateTranscriptDisplay() {
+        function startTypingAnimation() {
+            if (isTyping) return;
+            isTyping = true;
+            
             const container = document.getElementById('transcriptScrollArea');
             
-            // Combine transcripts and insights, sort by timestamp
-            const allItems = [
-                ...transcripts.map(t => ({...t, type: 'transcript'})),
-                ...insights.map(i => ({...i, type: 'insight'}))
-            ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-            
-            if (allItems.length === 0) {
-                container.innerHTML = '<div class="loading">Waiting for transcriptions...</div>';
-                return;
-            }
-            
-            container.innerHTML = allItems.map(item => {
-                const time = new Date(item.timestamp).toLocaleTimeString();
+            function typeNextChars() {
+                // Check if we have any text to display
+                if (fullTranscriptText.length === 0) {
+                    container.innerHTML = '<div class="loading">Waiting for transcriptions...</div>';
+                    isTyping = false;
+                    return;
+                }
                 
-                if (item.type === 'transcript') {
-                    return `
-                        <div class="transcript-item">
-                            <div class="transcript-time">[${time}]</div>
-                            <div class="transcript-text">${item.text}</div>
-                        </div>
-                    `;
-                } else {
-                    // Format insight type label
+                if (displayedCharIndex >= fullTranscriptText.length) {
+                    isTyping = false;
+                    return;
+                }
+                
+                // Type multiple characters per frame for smoother animation
+                const charsPerFrame = 2;
+                const endIndex = Math.min(displayedCharIndex + charsPerFrame, fullTranscriptText.length);
+                
+                // Build the display content with insights inserted inline
+                let displayContent = '';
+                let lastInsertPos = 0;
+                
+                // Get insights that should be displayed and sort by position
+                const displayedInsights = pendingInsights
+                    .filter(insight => insight.insertPosition <= endIndex)
+                    .sort((a, b) => a.insertPosition - b.insertPosition);
+                
+                // Build content with insights inserted at their positions
+                displayedInsights.forEach(insight => {
+                    // Add transcript text up to this insight
+                    if (insight.insertPosition > lastInsertPos) {
+                        const textBefore = fullTranscriptText.substring(lastInsertPos, Math.min(insight.insertPosition, endIndex));
+                        if (textBefore) {
+                            displayContent += `<div class="flowing-transcript">${textBefore}</div>`;
+                        }
+                    }
+                    
+                    // Add the insight
                     const typeLabel = {
                         'summary': 'Summary',
                         'action_item': 'Action Items',
                         'question': 'Key Questions',
                         'decision': 'Decisions',
                         'follow_up': 'Follow-up'
-                    }[item.type] || 'Insight';
+                    }[insight.type] || 'Insight';
                     
-                    return `
+                    displayContent += `
                         <div class="insight-item">
                             <div class="insight-type">${typeLabel}</div>
-                            <div class="transcript-time">[${time}]</div>
-                            <div class="transcript-text">${item.content}</div>
+                            <div class="transcript-text">${insight.content}</div>
                         </div>
                     `;
+                    
+                    lastInsertPos = insight.insertPosition;
+                });
+                
+                // Add any remaining transcript text after the last insight
+                if (lastInsertPos < endIndex) {
+                    const remainingText = fullTranscriptText.substring(lastInsertPos, endIndex);
+                    if (remainingText) {
+                        displayContent += `<div class="flowing-transcript">${remainingText}</div>`;
+                    }
                 }
-            }).join('');
+                
+                // Update container
+                container.innerHTML = displayContent;
+                
+                // Auto-scroll to bottom
+                container.scrollTop = container.scrollHeight;
+                
+                // Update index
+                displayedCharIndex = endIndex;
+                
+                // Continue typing
+                if (displayedCharIndex < fullTranscriptText.length) {
+                    setTimeout(typeNextChars, typingSpeed);
+                } else {
+                    isTyping = false;
+                }
+            }
             
-            // Auto-scroll to bottom
-            container.scrollTop = container.scrollHeight;
+            typeNextChars();
         }
         
         function askQuestion() {
