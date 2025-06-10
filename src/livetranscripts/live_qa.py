@@ -33,6 +33,11 @@ class MessageType(Enum):
     UPDATE_KB = "update_kb"
     KB_UPDATED = "kb_updated"
     KB_CONTENT = "kb_content"
+    GET_API_KEYS = "get_api_keys"
+    SET_API_KEYS = "set_api_keys"
+    API_KEYS = "api_keys"
+    API_KEYS_UPDATED = "api_keys_updated"
+    API_KEYS_STATUS = "api_keys_status"
 
 
 class ConnectionState(Enum):
@@ -247,6 +252,18 @@ class WebSocketHandler:
                 await websocket.send(json.dumps(kb_msg))
                 print(f"📚 Sent KB content to {self.current_session_id}")
             
+            # Send API keys status
+            if self.server and hasattr(self.server, 'api_key_manager'):
+                keys = self.server.api_key_manager.get_api_keys(masked=True)
+                api_keys_status_msg = {
+                    "type": MessageType.API_KEYS_STATUS.value,
+                    "has_openai_key": bool(keys.get('openai_key', '')),
+                    "has_gemini_key": bool(keys.get('gemini_key', '')),
+                    "timestamp": datetime.now().isoformat()
+                }
+                await websocket.send(json.dumps(api_keys_status_msg))
+                print(f"🔑 Sent API keys status to {self.current_session_id}")
+            
             # Handle messages
             print(f"👂 Listening for messages from {self.current_session_id}")
             async for message in websocket:
@@ -287,6 +304,10 @@ class WebSocketHandler:
                 await self._handle_status_request(websocket, data)
             elif message_type == MessageType.UPDATE_KB.value:
                 await self._handle_kb_update(websocket, data)
+            elif message_type == MessageType.GET_API_KEYS.value:
+                await self._handle_get_api_keys(websocket, data)
+            elif message_type == MessageType.SET_API_KEYS.value:
+                await self._handle_set_api_keys(websocket, data)
             else:
                 await self._send_error(websocket, f"Unknown message type: {message_type}", data.get("request_id"))
                 
@@ -474,6 +495,71 @@ class WebSocketHandler:
         except Exception as e:
             await self._send_error(websocket, f"Failed to handle status request: {e}", None)
     
+    async def _handle_get_api_keys(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle get API keys request from client."""
+        try:
+            # Get masked API keys
+            if self.server and hasattr(self.server, 'api_key_manager'):
+                keys = self.server.api_key_manager.get_api_keys(masked=True)
+                
+                # Send API keys response
+                response = {
+                    "type": MessageType.API_KEYS.value,
+                    "openai_key": keys.get('openai_key', ''),
+                    "gemini_key": keys.get('gemini_key', ''),
+                    "timestamp": datetime.now().isoformat()
+                }
+                await websocket.send(json.dumps(response))
+                print(f"🔑 Sent masked API keys to {self.current_session_id}")
+            else:
+                await self._send_error(websocket, "API key manager not available", None)
+                
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to get API keys: {e}", None)
+    
+    async def _handle_set_api_keys(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle set API keys request from client."""
+        try:
+            openai_key = data.get("openai_key", "")
+            gemini_key = data.get("gemini_key", "")
+            
+            if self.server and hasattr(self.server, 'api_key_manager'):
+                try:
+                    # Set API keys
+                    self.server.api_key_manager.set_api_keys(
+                        openai_key=openai_key,
+                        gemini_key=gemini_key
+                    )
+                    
+                    # Reload environment variables
+                    self.server.api_key_manager.reload_environment()
+                    
+                    # Send success response
+                    response = {
+                        "type": MessageType.API_KEYS_UPDATED.value,
+                        "success": True,
+                        "message": "API keys updated successfully",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    await websocket.send(json.dumps(response))
+                    print(f"✅ Updated API keys for {self.current_session_id}")
+                    
+                except Exception as validation_error:
+                    # Send validation error
+                    response = {
+                        "type": MessageType.API_KEYS_UPDATED.value,
+                        "success": False,
+                        "message": str(validation_error),
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    await websocket.send(json.dumps(response))
+                    print(f"❌ API key validation error: {validation_error}")
+            else:
+                await self._send_error(websocket, "API key manager not available", None)
+                
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to set API keys: {e}", None)
+    
     async def _send_error(self, websocket, error_message: str, request_id: Optional[str]) -> None:
         """Send error message to client."""
         message = {
@@ -606,6 +692,7 @@ class LiveQAServer:
         self.recording_enabled: bool = True  # Recording state
         self.main_app = None  # Reference to main application
         self.knowledge_base = None  # Optional knowledge base
+        self.api_key_manager = None  # API key manager
         
         # Find the web interface file
         self.interface_file_path = self._find_web_interface_file()
@@ -615,6 +702,12 @@ class LiveQAServer:
             from .knowledge_base import KnowledgeBase
             self.knowledge_base = KnowledgeBase()
             print("📚 Created new knowledge base")
+        
+        # Create API key manager if not provided
+        if self.api_key_manager is None:
+            from .api_key_manager import APIKeyManager
+            self.api_key_manager = APIKeyManager()
+            print("🔑 Created API key manager")
     
     def _find_web_interface_file(self) -> Optional[str]:
         """Find the web interface HTML file."""
