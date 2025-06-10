@@ -42,8 +42,8 @@ class AudioBatch:
 class BatchingConfig:
     """Configuration for audio batching."""
     
-    min_batch_duration: float = 3.0
-    max_batch_duration: float = 30.0
+    min_batch_duration: float = 4.5
+    max_batch_duration: float = 45.0
     silence_threshold: int = 500  # milliseconds
     sample_rate: int = 16000
     overlap_duration: float = 0.5

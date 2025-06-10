@@ -75,8 +75,8 @@ class LiveTranscriptsApp:
         )
         
         batching_config = BatchingConfig(
-            min_batch_duration=self.config.get('min_batch_duration', 3.0),
-            max_batch_duration=self.config.get('max_batch_duration', 30.0),
+            min_batch_duration=self.config.get('min_batch_duration', 4.5),
+            max_batch_duration=self.config.get('max_batch_duration', 45.0),
             silence_threshold=self.config.get('silence_threshold', 500),
             sample_rate=audio_config.sample_rate
         )

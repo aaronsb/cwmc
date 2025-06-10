@@ -84,8 +84,8 @@ class TranscriptionConfig:
     whisper_prompt: Optional[str] = None
     
     # Batching
-    min_batch_duration: float = 3.0
-    max_batch_duration: float = 30.0
+    min_batch_duration: float = 4.5
+    max_batch_duration: float = 45.0
     silence_duration_threshold: float = 0.5
     batch_overlap: float = 0.5
     

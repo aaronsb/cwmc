@@ -14,8 +14,8 @@ audio:
 transcription:
   transcription_model: "gpt-4o-transcribe"
   model_fallback: ["whisper-1"]
-  min_batch_duration: 3.0
-  max_batch_duration: 30.0
+  min_batch_duration: 4.5
+  max_batch_duration: 45.0
   silence_duration_threshold: 0.5
 
 logging:
