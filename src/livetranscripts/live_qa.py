@@ -30,6 +30,9 @@ class MessageType(Enum):
     RECORDING_CONTROL = "recording_control"
     RECORDING_STATUS = "recording_status"
     STATUS_REQUEST = "status_request"
+    UPDATE_KB = "update_kb"
+    KB_UPDATED = "kb_updated"
+    KB_CONTENT = "kb_content"
 
 
 class ConnectionState(Enum):
@@ -214,6 +217,7 @@ class WebSocketHandler:
         self.server = server  # Reference to LiveQAServer
         self.current_session_id: Optional[str] = None
         self.current_intent: str = ""  # Store user's session intent
+        self.knowledge_base = None  # Optional knowledge base
     
     async def handle_connection(self, websocket) -> None:
         """Handle a WebSocket connection."""
@@ -232,6 +236,16 @@ class WebSocketHandler:
             }
             await websocket.send(json.dumps(welcome_msg))
             print(f"👋 Sent welcome message to {self.current_session_id}")
+            
+            # Send current KB content if available
+            if self.knowledge_base and hasattr(self.knowledge_base, 'get_content'):
+                kb_content = self.knowledge_base.get_content()
+                kb_msg = {
+                    "type": MessageType.KB_CONTENT.value,
+                    "content": kb_content
+                }
+                await websocket.send(json.dumps(kb_msg))
+                print(f"📚 Sent KB content to {self.current_session_id}")
             
             # Handle messages
             print(f"👂 Listening for messages from {self.current_session_id}")
@@ -271,6 +285,8 @@ class WebSocketHandler:
                 await self._handle_recording_control(websocket, data)
             elif message_type == MessageType.STATUS_REQUEST.value:
                 await self._handle_status_request(websocket, data)
+            elif message_type == MessageType.UPDATE_KB.value:
+                await self._handle_kb_update(websocket, data)
             else:
                 await self._send_error(websocket, f"Unknown message type: {message_type}", data.get("request_id"))
                 
@@ -369,6 +385,36 @@ class WebSocketHandler:
             
         except Exception as e:
             await self._send_error(websocket, f"Failed to update intent: {e}", None)
+    
+    async def _handle_kb_update(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle knowledge base update from client."""
+        try:
+            kb_content = data.get("content", "").strip()
+            print(f"📚 KB update request for session {self.current_session_id}")
+            
+            # Update local KB if it exists
+            if self.knowledge_base:
+                # Clear existing and add new content
+                self.knowledge_base.clear_all()
+                if kb_content:
+                    self.knowledge_base.add_document(kb_content)
+                print(f"✅ Updated KB with {len(kb_content)} characters")
+            
+            # Update KB in qa_handler if it exists
+            if self.qa_handler and hasattr(self.qa_handler, 'knowledge_base'):
+                self.qa_handler.knowledge_base = self.knowledge_base
+            
+            # Send confirmation
+            confirmation = {
+                "type": MessageType.KB_UPDATED.value,
+                "success": True,
+                "message": "Knowledge base updated successfully",
+                "timestamp": datetime.now().isoformat()
+            }
+            await websocket.send(json.dumps(confirmation))
+            
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to update KB: {e}", None)
     
     async def _handle_recording_control(self, websocket, data: Dict[str, Any]) -> None:
         """Handle recording control from client."""
@@ -559,9 +605,16 @@ class LiveQAServer:
         self.current_intent: str = ""  # Global intent for all sessions
         self.recording_enabled: bool = True  # Recording state
         self.main_app = None  # Reference to main application
+        self.knowledge_base = None  # Optional knowledge base
         
         # Find the web interface file
         self.interface_file_path = self._find_web_interface_file()
+        
+        # Create knowledge base if not provided
+        if self.knowledge_base is None:
+            from .knowledge_base import KnowledgeBase
+            self.knowledge_base = KnowledgeBase()
+            print("📚 Created new knowledge base")
     
     def _find_web_interface_file(self) -> Optional[str]:
         """Find the web interface HTML file."""
@@ -615,6 +668,11 @@ class LiveQAServer:
                     return
                 
                 handler = WebSocketHandler(self.session_manager, self.qa_handler, self)
+                
+                # Set the knowledge base if available
+                if self.knowledge_base:
+                    handler.knowledge_base = self.knowledge_base
+                
                 print(f"✅ WebSocket handler created, starting connection handling...")
                 await handler.handle_connection(websocket)
             except Exception as e:
@@ -759,6 +817,15 @@ class LiveQAServer:
             "average_response_time": avg_response_time,
             "uptime": (datetime.now() - self.start_time).total_seconds() if self.start_time else 0
         }
+    
+    def set_knowledge_base(self, knowledge_base) -> None:
+        """Set the knowledge base for the server."""
+        self.knowledge_base = knowledge_base
+        
+        # Also update the QA handler if it has KB support
+        if self.qa_handler and hasattr(self.qa_handler, 'knowledge_base'):
+            self.qa_handler.knowledge_base = knowledge_base
+            print(f"📚 Updated QA handler with knowledge base")
     
     async def cleanup_task(self) -> None:
         """Periodic cleanup task."""

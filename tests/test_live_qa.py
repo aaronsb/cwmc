@@ -424,6 +424,56 @@ class TestWebSocketHandler:
         assert formatted["confidence"] == 0.85
         assert formatted["processing_time"] == 1.5
 
+    @pytest.mark.asyncio
+    async def test_kb_update_message_handling(self, websocket_handler, mock_websocket):
+        """Test handling of KB update messages."""
+        # Set up session
+        session_id = websocket_handler.session_manager.create_session("test_user")
+        websocket_handler.current_session_id = session_id
+        
+        # Create a mock knowledge base
+        from src.livetranscripts.knowledge_base import KnowledgeBase
+        websocket_handler.knowledge_base = KnowledgeBase()
+        
+        # Mock KB update message
+        kb_update_message = {
+            "type": "update_kb",
+            "content": "# Test KB Content\n\nThis is test knowledge base content."
+        }
+        
+        # Process the message directly
+        await websocket_handler._process_message(mock_websocket, json.dumps(kb_update_message))
+        
+        # Should have sent acknowledgment
+        mock_websocket.send.assert_called()
+        # Get the last sent message (should be kb_updated)
+        sent_message = json.loads(mock_websocket.send.call_args[0][0])
+        
+        assert sent_message["type"] == "kb_updated"
+        assert sent_message["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_kb_content_sync_on_connect(self, websocket_handler, mock_websocket):
+        """Test that KB content is sent to client on connection."""
+        # Set up initial KB content
+        websocket_handler.knowledge_base = Mock()
+        websocket_handler.knowledge_base.get_content.return_value = "# Existing KB\n\nExisting content"
+        
+        # Simulate connection and immediate close
+        mock_websocket.recv.side_effect = websockets.exceptions.ConnectionClosed(None, None)
+        
+        # Handle connection
+        await websocket_handler.handle_connection(mock_websocket)
+        
+        # Should have sent KB content on connect
+        mock_websocket.send.assert_called()
+        sent_messages = [json.loads(call[0][0]) for call in mock_websocket.send.call_args_list]
+        
+        # Find KB content message
+        kb_content_msg = next((msg for msg in sent_messages if msg.get("type") == "kb_content"), None)
+        assert kb_content_msg is not None
+        assert kb_content_msg["content"] == "# Existing KB\n\nExisting content"
+
 
 class TestLiveQAServer:
     """Test the main Live Q&A server."""

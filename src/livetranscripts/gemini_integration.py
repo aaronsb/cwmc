@@ -20,6 +20,7 @@ class GeminiConfig:
     insight_interval_seconds: int = 60
     max_conversation_length: int = 20
     use_full_transcript: bool = True  # Always use complete transcript history
+    focus_prompt: str = ""  # Session focus/intent for customized AI behavior
     
     def __post_init__(self):
         """Validate configuration."""
@@ -223,6 +224,7 @@ class InsightGenerator:
         self.is_running = False
         self._insight_callbacks: List[Callable] = []
         self.session_intent: str = ""  # User's session focus/intent
+        self.knowledge_base = None  # Optional knowledge base for context
     
     async def generate_summary(self) -> MeetingInsight:
         """Generate meeting summary insight."""
@@ -319,45 +321,100 @@ class InsightGenerator:
         self.session_intent = intent
         print(f"📌 Insight generator intent updated: '{intent}'")
     
+    def _build_insights_prompt(self, context: str) -> str:
+        """Build prompt for insights generation with optional KB."""
+        return self._build_summary_prompt(context)
+    
     def _build_summary_prompt(self, context_text: str) -> str:
         """Build prompt for summary generation."""
+        prompt_parts = []
+        
+        # Add knowledge base content if available
+        if self.knowledge_base and hasattr(self.knowledge_base, 'get_content'):
+            kb_content = self.knowledge_base.get_content()
+            if kb_content:
+                prompt_parts.append(f"KNOWLEDGE BASE:\n{kb_content}\n")
+        
+        # Add session focus/intent
         intent_prefix = ""
         if self.session_intent:
             intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
+        elif self.config.focus_prompt:
+            intent_prefix = f"SESSION FOCUS: {self.config.focus_prompt}\n\n"
         
-        return f"""{intent_prefix}Based on the meeting transcript, provide an insightful observation about what's happening in the conversation (2-3 sentences, ~400 characters).
+        if intent_prefix:
+            prompt_parts.append(intent_prefix)
+        
+        # Add main prompt
+        prompt_parts.append(f"""Based on the meeting transcript{" and knowledge base" if self.knowledge_base and self.knowledge_base.get_content() else ""}, provide an insightful observation about what's happening in the conversation (2-3 sentences, ~400 characters).
 
 Complete Meeting Transcript:
 {context_text}
 
-Share an interesting insight, pattern, or notable point from the discussion{f", especially related to {self.session_intent}" if self.session_intent else ""}. Make it a statement, not a question:"""
+Share an interesting insight, pattern, or notable point from the discussion{f", especially related to {self.session_intent or self.config.focus_prompt}" if (self.session_intent or self.config.focus_prompt) else ""}. {"Connect insights to the knowledge base when relevant." if self.knowledge_base and self.knowledge_base.get_content() else ""} Make it a statement, not a question:""")
+        
+        return "".join(prompt_parts)
     
     def _build_action_items_prompt(self, context_text: str) -> str:
         """Build prompt for action items generation."""
+        prompt_parts = []
+        
+        # Add knowledge base content if available
+        if self.knowledge_base and hasattr(self.knowledge_base, 'get_content'):
+            kb_content = self.knowledge_base.get_content()
+            if kb_content:
+                prompt_parts.append(f"KNOWLEDGE BASE:\n{kb_content}\n")
+        
+        # Add session focus/intent
         intent_prefix = ""
         if self.session_intent:
             intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
+        elif self.config.focus_prompt:
+            intent_prefix = f"SESSION FOCUS: {self.config.focus_prompt}\n\n"
         
-        return f"""{intent_prefix}From the meeting transcript, extract key themes, decisions, or noteworthy moments (2-3 sentences, ~400 characters).
+        if intent_prefix:
+            prompt_parts.append(intent_prefix)
+        
+        # Add main prompt
+        prompt_parts.append(f"""From the meeting transcript{" and knowledge base context" if self.knowledge_base and self.knowledge_base.get_content() else ""}, extract key themes, decisions, or noteworthy moments (2-3 sentences, ~400 characters).
 
 Complete Meeting Transcript:
 {context_text}
 
-Identify what's most interesting or important about the conversation so far{f", particularly regarding {self.session_intent}" if self.session_intent else ""}. Focus on patterns, decisions, or notable developments:"""
+Identify what's most interesting or important about the conversation so far{f", particularly regarding {self.session_intent or self.config.focus_prompt}" if (self.session_intent or self.config.focus_prompt) else ""}. {"Reference the knowledge base when relevant." if self.knowledge_base and self.knowledge_base.get_content() else ""} Focus on patterns, decisions, or notable developments:""")
+        
+        return "".join(prompt_parts)
     
     def _build_questions_prompt(self, context_text: str) -> str:
         """Build prompt for questions generation."""
+        prompt_parts = []
+        
+        # Add knowledge base content if available
+        if self.knowledge_base and hasattr(self.knowledge_base, 'get_content'):
+            kb_content = self.knowledge_base.get_content()
+            if kb_content:
+                prompt_parts.append(f"KNOWLEDGE BASE:\n{kb_content}\n")
+        
+        # Add session focus/intent
         intent_prefix = ""
         if self.session_intent:
             intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
+        elif self.config.focus_prompt:
+            intent_prefix = f"SESSION FOCUS: {self.config.focus_prompt}\n\n"
         
-        return f"""{intent_prefix}Based on the meeting discussion, suggest 2-3 thoughtful clarifying questions (aim for ~400 characters).
+        if intent_prefix:
+            prompt_parts.append(intent_prefix)
+        
+        # Add main prompt
+        prompt_parts.append(f"""Based on the meeting discussion{" and knowledge base" if self.knowledge_base and self.knowledge_base.get_content() else ""}, suggest 2-3 thoughtful clarifying questions (aim for ~400 characters).
 
 Complete Meeting Transcript:
 {context_text}
 
-Identify key gaps or areas needing clarification{f" regarding {self.session_intent}" if self.session_intent else ""}. 
-Format each question on a new line. Make them specific and actionable:"""
+Identify key gaps or areas needing clarification{f" regarding {self.session_intent or self.config.focus_prompt}" if (self.session_intent or self.config.focus_prompt) else ""}. {"Use the knowledge base to inform your questions." if self.knowledge_base and self.knowledge_base.get_content() else ""}
+Format each question on a new line. Make them specific and actionable:""")
+        
+        return "".join(prompt_parts)
 
 
 class QAHandler:
@@ -370,6 +427,7 @@ class QAHandler:
         self.conversation_history: List[ChatMessage] = []
         self.max_conversation_length = config.max_conversation_length
         self.session_intent: str = ""  # User's session focus/intent
+        self.knowledge_base = None  # Optional knowledge base for context
     
     async def answer_question(self, question: str) -> str:
         """Answer a question based on meeting context."""
@@ -395,22 +453,39 @@ class QAHandler:
         
         return answer
     
-    def _build_qa_prompt(self, question: str) -> str:
-        """Build prompt for Q&A with COMPLETE meeting context."""
-        context_text = self.context_manager.get_context_text()
+    def _build_qa_prompt(self, question: str, context: Optional[str] = None) -> str:
+        """Build prompt for Q&A with COMPLETE meeting context and optional knowledge base."""
+        context_text = context or self.context_manager.get_context_text()
         
-        prompt = f"""You are an AI assistant with access to the COMPLETE meeting transcript from beginning to end. Please answer the following question using ANY information from the ENTIRE meeting.
+        # Start building the prompt
+        prompt_parts = []
+        
+        # Add knowledge base content if available
+        if self.knowledge_base and hasattr(self.knowledge_base, 'get_content'):
+            kb_content = self.knowledge_base.get_content()
+            if kb_content:
+                prompt_parts.append(f"""KNOWLEDGE BASE:
+{kb_content}
+""")
+        
+        # Add session focus if available
+        if self.config.focus_prompt:
+            prompt_parts.append(f"""SESSION FOCUS: {self.config.focus_prompt}
+""")
+        
+        # Add main prompt
+        prompt_parts.append(f"""You are an AI assistant with access to the COMPLETE meeting transcript from beginning to end. Please answer the following question using information from the meeting transcript and any provided knowledge base.
 
 Complete Meeting Transcript (everything from start to now):
 {context_text if context_text else "No meeting context available yet."}
 
 Question: {question}
 
-Please provide a comprehensive answer based on the ENTIRE meeting transcript. You have access to everything that has been said from the beginning of the meeting. If the answer requires information from earlier in the meeting, please include it.
+Please provide a comprehensive answer based on the ENTIRE meeting transcript and knowledge base. If the knowledge base contains relevant information, incorporate it into your answer. You have access to everything that has been said from the beginning of the meeting.
 
-Answer:"""
+Answer:""")
         
-        return prompt
+        return "\n".join(prompt_parts)
     
     async def generate_contextual_questions(self) -> List[str]:
         """Generate contextual questions based on recent meeting content."""
@@ -428,16 +503,33 @@ Answer:"""
         word_count = len(context_text.split())
         print(f"📄 Full transcript context for questions: {word_count} words, {len(context_text)} chars")
         
+        prompt_parts = []
+        
+        # Add knowledge base content if available
+        if self.knowledge_base and hasattr(self.knowledge_base, 'get_content'):
+            kb_content = self.knowledge_base.get_content()
+            if kb_content:
+                prompt_parts.append(f"KNOWLEDGE BASE:\n{kb_content}\n\n")
+        
+        # Add session focus/intent
         intent_prefix = ""
         if self.session_intent:
             intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
+        elif self.config.focus_prompt:
+            intent_prefix = f"SESSION FOCUS: {self.config.focus_prompt}\n\n"
         
-        prompt = f"""{intent_prefix}Based on the COMPLETE meeting transcript from beginning to end, generate exactly 4 specific questions that attendees might want to ask. These should be relevant to ANY topics discussed throughout the ENTIRE meeting, not just recent parts.
+        if intent_prefix:
+            prompt_parts.append(intent_prefix)
+        
+        # Add main prompt
+        prompt_parts.append(f"""Based on the COMPLETE meeting transcript from beginning to end{" and knowledge base" if self.knowledge_base and self.knowledge_base.get_content() else ""}, generate exactly 4 specific questions that attendees might want to ask. These should be relevant to ANY topics discussed throughout the ENTIRE meeting, not just recent parts.
 
 Complete Meeting Transcript (entire history):
 {context_text}
 
-Considering ALL topics and discussions from the ENTIRE meeting{f", with special focus on {self.session_intent}" if self.session_intent else ""}, list exactly 4 questions, one per line, without numbering or bullet points. Each question should end with a question mark."""
+Considering ALL topics and discussions from the ENTIRE meeting{f", with special focus on {self.session_intent or self.config.focus_prompt}" if (self.session_intent or self.config.focus_prompt) else ""}{"and connecting to the knowledge base" if self.knowledge_base and self.knowledge_base.get_content() else ""}, list exactly 4 questions, one per line, without numbering or bullet points. Each question should end with a question mark.""")
+        
+        prompt = "".join(prompt_parts)
         
         try:
             response = await self.client.generate_content(prompt)
@@ -571,3 +663,77 @@ class MeetingAnalyzer:
             "pace_analysis": pace_analysis,
             "insights_generated": len(self.insights_history)
         }
+
+
+class GeminiIntegration:
+    """Unified interface for all Gemini components with knowledge base support."""
+    
+    def __init__(self, config: GeminiConfig):
+        """Initialize the Gemini integration with all components."""
+        self.config = config
+        self.context_manager = ContextManager(config)
+        self.qa_handler = QAHandler(config, self.context_manager)
+        self.insights_generator = InsightGenerator(config, self.context_manager)
+        self.knowledge_base = None
+        
+        # Initialize client if API key is available
+        api_key = None
+        try:
+            import os
+            api_key = os.getenv('GOOGLE_API_KEY')
+            if api_key:
+                client = GeminiClient(config, api_key)
+                self.qa_handler.client = client
+                self.insights_generator.client = client
+        except Exception as e:
+            print(f"Failed to initialize Gemini client: {e}")
+    
+    def set_knowledge_base(self, knowledge_base):
+        """Set the knowledge base for all components."""
+        self.knowledge_base = knowledge_base
+        self.qa_handler.knowledge_base = knowledge_base
+        self.insights_generator.knowledge_base = knowledge_base
+    
+    async def answer_question(self, question: str) -> str:
+        """Answer a question using the Q&A handler."""
+        return await self.qa_handler.answer_question(question)
+    
+    async def generate_insights(self) -> List[str]:
+        """Generate insights using the insights generator."""
+        insights = []
+        
+        # Try to generate different types of insights
+        try:
+            summary = await self.insights_generator.generate_summary()
+            insights.append(summary.content)
+        except Exception:
+            pass
+            
+        try:
+            action_items = await self.insights_generator.generate_action_items()
+            insights.extend(action_items)
+        except Exception:
+            pass
+            
+        return insights
+    
+    async def generate_questions(self) -> List[str]:
+        """Generate contextual questions."""
+        return await self.qa_handler.generate_contextual_questions()
+    
+    def add_transcript_text(self, text: str):
+        """Add transcript text to the context manager."""
+        # Create a simple transcription result from text
+        from dataclasses import dataclass
+        
+        @dataclass 
+        class SimpleTranscriptionResult:
+            text: str
+            timestamp: datetime
+            duration: float = 1.0
+            
+        result = SimpleTranscriptionResult(
+            text=text,
+            timestamp=datetime.now()
+        )
+        self.context_manager.add_transcription(result)
