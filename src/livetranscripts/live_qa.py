@@ -33,6 +33,21 @@ class MessageType(Enum):
     UPDATE_KB = "update_kb"
     KB_UPDATED = "kb_updated"
     KB_CONTENT = "kb_content"
+    GET_API_KEYS = "get_api_keys"
+    SET_API_KEYS = "set_api_keys"
+    API_KEYS = "api_keys"
+    API_KEYS_UPDATED = "api_keys_updated"
+    API_KEYS_STATUS = "api_keys_status"
+    LIST_KB_RECORDS = "list_kb_records"
+    CREATE_KB_RECORD = "create_kb_record"
+    UPDATE_KB_RECORD = "update_kb_record"
+    DELETE_KB_RECORD = "delete_kb_record"
+    GET_KB_RECORD = "get_kb_record"
+    KB_RECORDS_LIST = "kb_records_list"
+    KB_RECORD_CREATED = "kb_record_created"
+    KB_RECORD_UPDATED = "kb_record_updated"
+    KB_RECORD_DELETED = "kb_record_deleted"
+    KB_RECORD_CONTENT = "kb_record_content"
 
 
 class ConnectionState(Enum):
@@ -247,6 +262,18 @@ class WebSocketHandler:
                 await websocket.send(json.dumps(kb_msg))
                 print(f"📚 Sent KB content to {self.current_session_id}")
             
+            # Send API keys status
+            if self.server and hasattr(self.server, 'api_key_manager'):
+                keys = self.server.api_key_manager.get_api_keys(masked=True)
+                api_keys_status_msg = {
+                    "type": MessageType.API_KEYS_STATUS.value,
+                    "has_openai_key": bool(keys.get('openai_key', '')),
+                    "has_gemini_key": bool(keys.get('gemini_key', '')),
+                    "timestamp": datetime.now().isoformat()
+                }
+                await websocket.send(json.dumps(api_keys_status_msg))
+                print(f"🔑 Sent API keys status to {self.current_session_id}")
+            
             # Handle messages
             print(f"👂 Listening for messages from {self.current_session_id}")
             async for message in websocket:
@@ -287,6 +314,20 @@ class WebSocketHandler:
                 await self._handle_status_request(websocket, data)
             elif message_type == MessageType.UPDATE_KB.value:
                 await self._handle_kb_update(websocket, data)
+            elif message_type == MessageType.GET_API_KEYS.value:
+                await self._handle_get_api_keys(websocket, data)
+            elif message_type == MessageType.SET_API_KEYS.value:
+                await self._handle_set_api_keys(websocket, data)
+            elif message_type == MessageType.LIST_KB_RECORDS.value:
+                await self._handle_list_kb_records(websocket, data)
+            elif message_type == MessageType.CREATE_KB_RECORD.value:
+                await self._handle_create_kb_record(websocket, data)
+            elif message_type == MessageType.UPDATE_KB_RECORD.value:
+                await self._handle_update_kb_record(websocket, data)
+            elif message_type == MessageType.DELETE_KB_RECORD.value:
+                await self._handle_delete_kb_record(websocket, data)
+            elif message_type == MessageType.GET_KB_RECORD.value:
+                await self._handle_get_kb_record(websocket, data)
             else:
                 await self._send_error(websocket, f"Unknown message type: {message_type}", data.get("request_id"))
                 
@@ -474,6 +515,213 @@ class WebSocketHandler:
         except Exception as e:
             await self._send_error(websocket, f"Failed to handle status request: {e}", None)
     
+    async def _handle_get_api_keys(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle get API keys request from client."""
+        try:
+            # Get masked API keys
+            if self.server and hasattr(self.server, 'api_key_manager'):
+                keys = self.server.api_key_manager.get_api_keys(masked=True)
+                
+                # Send API keys response
+                response = {
+                    "type": MessageType.API_KEYS.value,
+                    "openai_key": keys.get('openai_key', ''),
+                    "gemini_key": keys.get('gemini_key', ''),
+                    "timestamp": datetime.now().isoformat()
+                }
+                await websocket.send(json.dumps(response))
+                print(f"🔑 Sent masked API keys to {self.current_session_id}")
+            else:
+                await self._send_error(websocket, "API key manager not available", None)
+                
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to get API keys: {e}", None)
+    
+    async def _handle_set_api_keys(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle set API keys request from client."""
+        try:
+            openai_key = data.get("openai_key", "")
+            gemini_key = data.get("gemini_key", "")
+            
+            if self.server and hasattr(self.server, 'api_key_manager'):
+                try:
+                    # Set API keys
+                    self.server.api_key_manager.set_api_keys(
+                        openai_key=openai_key,
+                        gemini_key=gemini_key
+                    )
+                    
+                    # Reload environment variables
+                    self.server.api_key_manager.reload_environment()
+                    
+                    # Send success response
+                    response = {
+                        "type": MessageType.API_KEYS_UPDATED.value,
+                        "success": True,
+                        "message": "API keys updated successfully",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    await websocket.send(json.dumps(response))
+                    print(f"✅ Updated API keys for {self.current_session_id}")
+                    
+                except Exception as validation_error:
+                    # Send validation error
+                    response = {
+                        "type": MessageType.API_KEYS_UPDATED.value,
+                        "success": False,
+                        "message": str(validation_error),
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    await websocket.send(json.dumps(response))
+                    print(f"❌ API key validation error: {validation_error}")
+            else:
+                await self._send_error(websocket, "API key manager not available", None)
+                
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to set API keys: {e}", None)
+    
+    async def _handle_list_kb_records(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle list KB records request."""
+        try:
+            if self.knowledge_base:
+                records = self.knowledge_base.list_documents()
+                
+                response = {
+                    "type": MessageType.KB_RECORDS_LIST.value,
+                    "records": records,
+                    "timestamp": datetime.now().isoformat()
+                }
+                await websocket.send(json.dumps(response))
+                print(f"📚 Sent {len(records)} KB records to {self.current_session_id}")
+            else:
+                await self._send_error(websocket, "Knowledge base not available", None)
+                
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to list KB records: {e}", None)
+    
+    async def _handle_create_kb_record(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle create KB record request."""
+        try:
+            content = data.get("content", "").strip()
+            
+            if not content:
+                await self._send_error(websocket, "Content is required", None)
+                return
+            
+            if self.knowledge_base:
+                doc_id = self.knowledge_base.add_document(content)
+                title = self.knowledge_base._extract_title(content)
+                
+                response = {
+                    "type": MessageType.KB_RECORD_CREATED.value,
+                    "success": True,
+                    "doc_id": doc_id,
+                    "title": title,
+                    "timestamp": datetime.now().isoformat()
+                }
+                await websocket.send(json.dumps(response))
+                print(f"✅ Created KB record '{title}' ({doc_id}) for {self.current_session_id}")
+                
+                # Update the server's knowledge base reference if needed
+                if self.server and hasattr(self.server, 'knowledge_base'):
+                    self.server.knowledge_base = self.knowledge_base
+            else:
+                await self._send_error(websocket, "Knowledge base not available", None)
+                
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to create KB record: {e}", None)
+    
+    async def _handle_update_kb_record(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle update KB record request."""
+        try:
+            doc_id = data.get("doc_id", "").strip()
+            content = data.get("content", "").strip()
+            
+            if not doc_id or not content:
+                await self._send_error(websocket, "Document ID and content are required", None)
+                return
+            
+            if self.knowledge_base:
+                success = self.knowledge_base.update_document(doc_id, content)
+                
+                if success:
+                    title = self.knowledge_base._extract_title(content)
+                    response = {
+                        "type": MessageType.KB_RECORD_UPDATED.value,
+                        "success": True,
+                        "doc_id": doc_id,
+                        "title": title,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    await websocket.send(json.dumps(response))
+                    print(f"✅ Updated KB record {doc_id} for {self.current_session_id}")
+                else:
+                    await self._send_error(websocket, f"Document {doc_id} not found", None)
+            else:
+                await self._send_error(websocket, "Knowledge base not available", None)
+                
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to update KB record: {e}", None)
+    
+    async def _handle_delete_kb_record(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle delete KB record request."""
+        try:
+            doc_id = data.get("doc_id", "").strip()
+            
+            if not doc_id:
+                await self._send_error(websocket, "Document ID is required", None)
+                return
+            
+            if self.knowledge_base:
+                success = self.knowledge_base.remove_document(doc_id)
+                
+                if success:
+                    response = {
+                        "type": MessageType.KB_RECORD_DELETED.value,
+                        "success": True,
+                        "doc_id": doc_id,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    await websocket.send(json.dumps(response))
+                    print(f"🗑️ Deleted KB record {doc_id} for {self.current_session_id}")
+                else:
+                    await self._send_error(websocket, f"Document {doc_id} not found", None)
+            else:
+                await self._send_error(websocket, "Knowledge base not available", None)
+                
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to delete KB record: {e}", None)
+    
+    async def _handle_get_kb_record(self, websocket, data: Dict[str, Any]) -> None:
+        """Handle get KB record request."""
+        try:
+            doc_id = data.get("doc_id", "").strip()
+            
+            if not doc_id:
+                await self._send_error(websocket, "Document ID is required", None)
+                return
+            
+            if self.knowledge_base and doc_id in self.knowledge_base.documents:
+                doc = self.knowledge_base.documents[doc_id]
+                title = self.knowledge_base._extract_title(doc.content)
+                
+                response = {
+                    "type": MessageType.KB_RECORD_CONTENT.value,
+                    "doc_id": doc_id,
+                    "title": title,
+                    "content": doc.content,
+                    "created_at": doc.created_at.isoformat(),
+                    "updated_at": doc.updated_at.isoformat(),
+                    "timestamp": datetime.now().isoformat()
+                }
+                await websocket.send(json.dumps(response))
+                print(f"📄 Sent KB record {doc_id} to {self.current_session_id}")
+            else:
+                await self._send_error(websocket, f"Document {doc_id} not found", None)
+                
+        except Exception as e:
+            await self._send_error(websocket, f"Failed to get KB record: {e}", None)
+    
     async def _send_error(self, websocket, error_message: str, request_id: Optional[str]) -> None:
         """Send error message to client."""
         message = {
@@ -606,6 +854,7 @@ class LiveQAServer:
         self.recording_enabled: bool = True  # Recording state
         self.main_app = None  # Reference to main application
         self.knowledge_base = None  # Optional knowledge base
+        self.api_key_manager = None  # API key manager
         
         # Find the web interface file
         self.interface_file_path = self._find_web_interface_file()
@@ -615,6 +864,12 @@ class LiveQAServer:
             from .knowledge_base import KnowledgeBase
             self.knowledge_base = KnowledgeBase()
             print("📚 Created new knowledge base")
+        
+        # Create API key manager if not provided
+        if self.api_key_manager is None:
+            from .api_key_manager import APIKeyManager
+            self.api_key_manager = APIKeyManager()
+            print("🔑 Created API key manager")
     
     def _find_web_interface_file(self) -> Optional[str]:
         """Find the web interface HTML file."""
