@@ -15,7 +15,7 @@ class GeminiConfig:
     
     model: str = "gemini-1.5-flash"  # Using 1.5 Flash for stable rate limits
     temperature: float = 0.3
-    max_tokens: int = 2048
+    max_tokens: int = 800  # Balanced for informative yet concise insights
     context_window_minutes: int = 5  # DEPRECATED - we use full transcript now
     insight_interval_seconds: int = 60
     max_conversation_length: int = 20
@@ -244,21 +244,21 @@ class InsightGenerator:
         )
     
     async def generate_action_items(self) -> MeetingInsight:
-        """Generate action items insight."""
+        """Generate key themes and notable moments insight."""
         if not self.client:
             raise RuntimeError("Insight generator client not initialized")
             
         context_text = self.context_manager.get_context_text()
         if not context_text:
-            raise ValueError("No context available for action items")
+            raise ValueError("No context available for insights")
         
         prompt = self._build_action_items_prompt(context_text)
         content = await self.client.generate_content(prompt)
         
         return MeetingInsight(
-            type=InsightType.ACTION_ITEM,
+            type=InsightType.SUMMARY,  # Changed to SUMMARY since it's about themes/moments
             content=content,
-            confidence=0.85,  # Higher confidence for action items
+            confidence=0.85,
             context_duration=sum(t.duration for t in self.context_manager.transcriptions)
         )
     
@@ -293,14 +293,12 @@ class InsightGenerator:
                 if self.context_manager.transcriptions:
                     # Generate different types of insights on rotation
                     current_time = int(time.time())
-                    insight_type_index = (current_time // self.config.insight_interval_seconds) % 3
+                    insight_type_index = (current_time // self.config.insight_interval_seconds) % 2
                     
                     if insight_type_index == 0:
                         insight = await self.generate_summary()
-                    elif insight_type_index == 1:
-                        insight = await self.generate_action_items()
                     else:
-                        insight = await self.generate_questions()
+                        insight = await self.generate_action_items()
                     
                     # Notify callbacks
                     for cb in self._insight_callbacks:
@@ -327,19 +325,12 @@ class InsightGenerator:
         if self.session_intent:
             intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
         
-        return f"""{intent_prefix}Based on the COMPLETE meeting transcript from the beginning, provide a comprehensive summary of the key discussion points:
+        return f"""{intent_prefix}Based on the meeting transcript, provide an insightful observation about what's happening in the conversation (2-3 sentences, ~400 characters).
 
-Complete Meeting Transcript (from start to present):
+Complete Meeting Transcript:
 {context_text}
 
-Please provide a thorough summary that covers the ENTIRE meeting, highlighting:
-- All main topics discussed throughout the meeting
-- Key decisions made at any point
-- Important points raised from beginning to end
-- Overall meeting progression and conclusions
-{f"- Specific focus on aspects related to: {self.session_intent}" if self.session_intent else ""}
-
-Summary:"""
+Share an interesting insight, pattern, or notable point from the discussion{f", especially related to {self.session_intent}" if self.session_intent else ""}. Make it a statement, not a question:"""
     
     def _build_action_items_prompt(self, context_text: str) -> str:
         """Build prompt for action items generation."""
@@ -347,21 +338,12 @@ Summary:"""
         if self.session_intent:
             intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
         
-        return f"""{intent_prefix}Based on the COMPLETE meeting transcript from beginning to end, identify ALL specific action items and tasks mentioned throughout the entire meeting:
+        return f"""{intent_prefix}From the meeting transcript, extract key themes, decisions, or noteworthy moments (2-3 sentences, ~400 characters).
 
-Complete Meeting Transcript (entire meeting history):
+Complete Meeting Transcript:
 {context_text}
 
-Please list ALL action items, tasks, or follow-up items mentioned at any point in the meeting, including:
-- What needs to be done
-- Who is responsible (if mentioned)
-- Any deadlines mentioned
-- When in the meeting it was discussed
-{f"- Pay special attention to items related to: {self.session_intent}" if self.session_intent else ""}
-
-Review the ENTIRE transcript to ensure no action items are missed.
-
-Action Items:"""
+Identify what's most interesting or important about the conversation so far{f", particularly regarding {self.session_intent}" if self.session_intent else ""}. Focus on patterns, decisions, or notable developments:"""
     
     def _build_questions_prompt(self, context_text: str) -> str:
         """Build prompt for questions generation."""
@@ -369,14 +351,13 @@ Action Items:"""
         if self.session_intent:
             intent_prefix = f"The user's goal for this session is: '{self.session_intent}'\n\n"
         
-        return f"""{intent_prefix}Based on the COMPLETE meeting transcript from start to finish, suggest clarifying questions that address gaps or unclear points from the ENTIRE discussion:
+        return f"""{intent_prefix}Based on the meeting discussion, suggest 2-3 thoughtful clarifying questions (aim for ~400 characters).
 
-Complete Meeting Transcript (all content from beginning):
+Complete Meeting Transcript:
 {context_text}
 
-Analyzing the FULL meeting context, suggest 2-3 relevant questions that could help clarify any part of the discussion or gather more information about topics raised at any point{f", especially regarding: {self.session_intent}" if self.session_intent else ""}:
-
-Questions:"""
+Identify key gaps or areas needing clarification{f" regarding {self.session_intent}" if self.session_intent else ""}. 
+Format each question on a new line. Make them specific and actionable:"""
 
 
 class QAHandler:
