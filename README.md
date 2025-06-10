@@ -4,6 +4,8 @@
 
 Live Transcripts captures your meeting audio in real-time, transcribes it instantly using **OpenAI's advanced GPT-4o models**, and lets you ask questions about what's being discussed - all while the meeting is still happening!
 
+![Live Transcripts Screenshot](screenshot.jpeg)
+
 ## 🚀 **NEW: GPT-4o Transcription Upgrade!**
 
 We've upgraded to **GPT-4o transcription models** for dramatically improved accuracy:
