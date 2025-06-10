@@ -1101,6 +1101,150 @@
             min-height: 0;
         }
         
+        .kb-records-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100%;
+        }
+        
+        .kb-records-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding: 0 24px;
+        }
+        
+        .kb-new-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+            color: var(--color-neutral-0);
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .kb-new-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .kb-new-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+        
+        .kb-records-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 24px 24px;
+            min-height: 200px;
+        }
+        
+        .kb-record-item {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: var(--border-radius);
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        
+        .kb-record-item:hover {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: var(--color-primary);
+            transform: translateX(4px);
+        }
+        
+        .kb-record-info {
+            flex: 1;
+        }
+        
+        .kb-record-title {
+            font-weight: 600;
+            color: var(--color-neutral-800);
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+        
+        .kb-record-meta {
+            font-size: 12px;
+            color: var(--color-neutral-500);
+            display: flex;
+            gap: 12px;
+        }
+        
+        .kb-record-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .kb-record-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--color-neutral-700);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .kb-record-btn:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .kb-record-btn.delete {
+            color: var(--color-danger);
+        }
+        
+        .kb-record-btn.delete:hover {
+            background: var(--color-danger-light);
+            border-color: var(--color-danger);
+        }
+        
+        .kb-loading {
+            text-align: center;
+            color: var(--color-neutral-500);
+            padding: 40px;
+            font-style: italic;
+        }
+        
+        .kb-empty {
+            text-align: center;
+            color: var(--color-neutral-500);
+            padding: 60px 20px;
+        }
+        
+        .kb-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        /* KB Editor Modal */
+        .kb-editor-modal {
+            display: none;
+        }
+        
+        .kb-editor-modal.active {
+            display: flex;
+        }
+        
         .kb-editor-container {
             display: flex;
             flex-direction: column;
@@ -1463,48 +1607,24 @@
                 </div>
                 
                 <div class="kb-content" id="kbContent" style="display: none;">
-                    <div class="kb-editor-container">
+                    <div class="kb-records-container">
                         <div class="kb-header">
-                            <h4>Knowledge Base Editor</h4>
+                            <h4>Knowledge Base Records</h4>
                             <p class="kb-description">
-                                Add markdown content that will be used to enhance AI responses. 
-                                This could include product information, talking points, or any reference material.
+                                Manage multiple knowledge documents to enhance AI responses.
+                                Each record can contain product info, policies, documentation, or reference material.
                             </p>
                         </div>
                         
-                        <div class="kb-editor-wrapper">
-                            <textarea 
-                                id="kbEditor" 
-                                class="kb-editor" 
-                                placeholder="# Knowledge Base&#10;&#10;Enter your markdown content here...&#10;&#10;## Example&#10;- Product SKUs and features&#10;- Company policies&#10;- Technical documentation&#10;- Meeting agendas and talking points"
-                                spellcheck="false"
-                            ></textarea>
-                        </div>
-                        
-                        <div class="kb-actions">
-                            <div class="kb-status" id="kbStatus">
-                                <span class="kb-status-icon">✓</span>
-                                <span class="kb-status-text">Saved</span>
-                            </div>
-                            <button class="kb-save-btn" id="kbSaveBtn" onclick="saveKnowledgeBase()">
-                                Save Changes
+                        <div class="kb-records-actions">
+                            <button class="kb-new-btn" onclick="createNewKBRecord()">
+                                <span class="kb-new-icon">+</span>
+                                New Record
                             </button>
                         </div>
                         
-                        <div class="kb-preview-toggle">
-                            <label class="toggle-label">
-                                <input type="checkbox" id="kbPreviewToggle" onchange="toggleKBPreview()">
-                                <span>Show Markdown Preview</span>
-                            </label>
-                        </div>
-                        
-                        <div class="kb-preview" id="kbPreview" style="display: none;">
-                            <div class="kb-preview-header">
-                                <h4>Preview</h4>
-                            </div>
-                            <div class="kb-preview-content" id="kbPreviewContent">
-                                <!-- Markdown preview will be rendered here -->
-                            </div>
+                        <div class="kb-records-list" id="kbRecordsList">
+                            <div class="kb-loading">Loading knowledge base records...</div>
                         </div>
                     </div>
                 </div>
@@ -2130,6 +2250,38 @@
         });
     </script>
     
+    <!-- KB Editor Modal -->
+    <div id="kbEditorModal" class="modal-overlay kb-editor-modal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <span id="kbModalTitle">📝 Edit Knowledge Base Record</span>
+                <button class="modal-close" onclick="closeKBEditorModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="kb-editor-container">
+                    <div class="kb-editor-wrapper" style="min-height: 400px;">
+                        <textarea 
+                            id="kbModalEditor" 
+                            class="kb-editor" 
+                            placeholder="# Document Title&#10;&#10;Enter your markdown content here..."
+                            spellcheck="false"
+                            style="height: 400px;"
+                        ></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="modal-info">
+                    Use Markdown formatting. First heading (# or ##) will be used as the title.
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn cancel" onclick="closeKBEditorModal()">Cancel</button>
+                    <button class="modal-btn save" onclick="saveKBRecord()">Save Record</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- API Keys Modal -->
     <div id="apiKeyModal" class="modal-overlay">
         <div class="modal">
@@ -2300,6 +2452,221 @@
         document.getElementById('apiKeyModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeAdminModal();
+            }
+        });
+        
+        // KB Multi-Record Functions
+        let currentEditingDocId = null;
+        
+        function loadKBRecords() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                return;
+            }
+            
+            // Request KB records list
+            ws.send(JSON.stringify({ type: 'list_kb_records' }));
+        }
+        
+        function createNewKBRecord() {
+            currentEditingDocId = null; // New record
+            const modal = document.getElementById('kbEditorModal');
+            const editor = document.getElementById('kbModalEditor');
+            const title = document.getElementById('kbModalTitle');
+            
+            // Clear editor and set title
+            editor.value = '';
+            title.textContent = '📝 Create New Knowledge Base Record';
+            
+            // Show modal
+            modal.classList.add('active');
+            editor.focus();
+        }
+        
+        function editKBRecord(docId) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Not connected to server');
+                return;
+            }
+            
+            currentEditingDocId = docId;
+            
+            // Request record content
+            ws.send(JSON.stringify({
+                type: 'get_kb_record',
+                doc_id: docId
+            }));
+        }
+        
+        function deleteKBRecord(docId) {
+            if (!confirm('Are you sure you want to delete this knowledge base record?')) {
+                return;
+            }
+            
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Not connected to server');
+                return;
+            }
+            
+            // Send delete request
+            ws.send(JSON.stringify({
+                type: 'delete_kb_record',
+                doc_id: docId
+            }));
+        }
+        
+        function saveKBRecord() {
+            const editor = document.getElementById('kbModalEditor');
+            const content = editor.value.trim();
+            
+            if (!content) {
+                alert('Please enter some content for the knowledge base record');
+                return;
+            }
+            
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Not connected to server');
+                return;
+            }
+            
+            if (currentEditingDocId) {
+                // Update existing record
+                ws.send(JSON.stringify({
+                    type: 'update_kb_record',
+                    doc_id: currentEditingDocId,
+                    content: content
+                }));
+            } else {
+                // Create new record
+                ws.send(JSON.stringify({
+                    type: 'create_kb_record',
+                    content: content
+                }));
+            }
+        }
+        
+        function closeKBEditorModal() {
+            const modal = document.getElementById('kbEditorModal');
+            modal.classList.remove('active');
+            currentEditingDocId = null;
+        }
+        
+        function displayKBRecords(records) {
+            const listContainer = document.getElementById('kbRecordsList');
+            
+            if (!records || records.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="kb-empty">
+                        <div class="kb-empty-icon">📚</div>
+                        <p>No knowledge base records yet.</p>
+                        <p>Click "New Record" to create your first one!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Build records HTML
+            let html = '';
+            records.forEach(record => {
+                const createdDate = new Date(record.created_at).toLocaleDateString();
+                const charCount = record.char_count || 0;
+                
+                html += `
+                    <div class="kb-record-item" onclick="editKBRecord('${record.doc_id}')">
+                        <div class="kb-record-info">
+                            <div class="kb-record-title">${escapeHtml(record.title)}</div>
+                            <div class="kb-record-meta">
+                                <span>Created: ${createdDate}</span>
+                                <span>${charCount} characters</span>
+                            </div>
+                        </div>
+                        <div class="kb-record-actions">
+                            <button class="kb-record-btn" onclick="event.stopPropagation(); editKBRecord('${record.doc_id}')">
+                                Edit
+                            </button>
+                            <button class="kb-record-btn delete" onclick="event.stopPropagation(); deleteKBRecord('${record.doc_id}')">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            listContainer.innerHTML = html;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Add handlers for KB messages in handleMessage function
+        const originalHandleMessage = handleMessage;
+        handleMessage = function(data) {
+            originalHandleMessage(data);
+            
+            // Handle KB-specific messages
+            if (data.type === 'kb_records_list') {
+                displayKBRecords(data.records);
+            } else if (data.type === 'kb_record_created') {
+                if (data.success) {
+                    closeKBEditorModal();
+                    loadKBRecords(); // Refresh list
+                }
+            } else if (data.type === 'kb_record_updated') {
+                if (data.success) {
+                    closeKBEditorModal();
+                    loadKBRecords(); // Refresh list
+                }
+            } else if (data.type === 'kb_record_deleted') {
+                if (data.success) {
+                    loadKBRecords(); // Refresh list
+                }
+            } else if (data.type === 'kb_record_content') {
+                // Open editor with content
+                const modal = document.getElementById('kbEditorModal');
+                const editor = document.getElementById('kbModalEditor');
+                const title = document.getElementById('kbModalTitle');
+                
+                editor.value = data.content;
+                title.textContent = `📝 Edit: ${data.title}`;
+                modal.classList.add('active');
+                editor.focus();
+            }
+        };
+        
+        // Load KB records when switching to KB tab
+        const originalSwitchTab = switchTab;
+        switchTab = function(tab) {
+            originalSwitchTab(tab);
+            
+            if (tab === 'kb') {
+                loadKBRecords();
+            }
+        };
+        
+        // Close KB editor modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const kbModal = document.getElementById('kbEditorModal');
+                if (kbModal.classList.contains('active')) {
+                    closeKBEditorModal();
+                }
+            }
+        });
+        
+        // Close KB editor modal on overlay click
+        document.getElementById('kbEditorModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeKBEditorModal();
+            }
+        });
+        
+        // Keyboard shortcut for save in KB editor (Ctrl/Cmd + S)
+        document.getElementById('kbModalEditor').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveKBRecord();
             }
         });
     </script>

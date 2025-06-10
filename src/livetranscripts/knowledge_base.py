@@ -1,5 +1,6 @@
 """Knowledge Base module for storing and managing user-provided documentation."""
 
+import re
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Any
@@ -153,6 +154,65 @@ class KnowledgeBase:
             "total_documents": len(self.documents),
             "total_characters": total_chars
         }
+    
+    def list_documents(self) -> List[Dict[str, Any]]:
+        """List all documents with metadata.
+        
+        Returns:
+            List of document metadata dictionaries
+        """
+        # Sort by creation time
+        sorted_docs = sorted(
+            self.documents.values(),
+            key=lambda d: d.created_at
+        )
+        
+        records = []
+        for doc in sorted_docs:
+            records.append({
+                "doc_id": doc.doc_id,
+                "title": self._extract_title(doc.content),
+                "created_at": doc.created_at.isoformat(),
+                "updated_at": doc.updated_at.isoformat(),
+                "char_count": len(doc.content)
+            })
+        
+        return records
+    
+    def _extract_title(self, content: str) -> str:
+        """Extract title from markdown content.
+        
+        Args:
+            content: Markdown content
+            
+        Returns:
+            Extracted title or "Untitled Document"
+        """
+        if not content:
+            return "Untitled Document"
+        
+        # Look for markdown headers (# or ##)
+        lines = content.strip().split('\n')
+        for line in lines:
+            # Match H1 header
+            match = re.match(r'^#\s+(.+)$', line.strip())
+            if match:
+                return match.group(1).strip()
+            
+            # Match H2 header if no H1 found
+            match = re.match(r'^##\s+(.+)$', line.strip())
+            if match:
+                return match.group(1).strip()
+        
+        # If no headers found, use first non-empty line truncated
+        for line in lines:
+            if line.strip():
+                title = line.strip()
+                if len(title) > 50:
+                    return title[:47] + "..."
+                return title
+        
+        return "Untitled Document"
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert knowledge base to dictionary for serialization.
