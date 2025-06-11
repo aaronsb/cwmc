@@ -851,7 +851,7 @@ class LiveQAServer:
         self.start_time: Optional[datetime] = None
         self.active_connections: Set = set()
         self.current_intent: str = ""  # Global intent for all sessions
-        self.recording_enabled: bool = True  # Recording state
+        self.recording_enabled: bool = False  # Recording state - start disabled
         self.main_app = None  # Reference to main application
         self.knowledge_base = None  # Optional knowledge base
         self.api_key_manager = None  # API key manager

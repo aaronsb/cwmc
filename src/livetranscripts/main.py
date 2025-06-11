@@ -41,7 +41,7 @@ class LiveTranscriptsApp:
         self.tasks = []
         
         # Recording state
-        self.recording_paused: bool = False
+        self.recording_paused: bool = True  # Start with recording paused
         
         # Statistics
         self.start_time: Optional[datetime] = None
@@ -242,7 +242,7 @@ class LiveTranscriptsApp:
         """Main audio processing loop."""
         try:
             while self.is_running:
-                # Skip processing if recording is paused
+                # Skip ALL processing if recording is paused
                 if self.recording_paused:
                     await asyncio.sleep(0.1)  # Longer delay when paused
                     continue
@@ -255,17 +255,18 @@ class LiveTranscriptsApp:
                     )
                     # Process through batching system
                     await self.batch_processor.process_audio_chunk(audio_chunk.data)
-                except asyncio.TimeoutError:
-                    # No audio available, continue
-                    await asyncio.sleep(0.01)
                     self.stats['audio_chunks_processed'] += 1
                     
-                    # Check for new batches
-                    batch = await self.batch_processor.get_next_batch()
-                    if batch:
-                        # Send for transcription
-                        await self.transcription_manager.transcribe_batch(batch)
-                        self.stats['batches_created'] += 1
+                except asyncio.TimeoutError:
+                    # No audio available, continue
+                    pass
+                
+                # Check for new batches (only when recording is active)
+                batch = await self.batch_processor.get_next_batch()
+                if batch:
+                    # Send for transcription
+                    await self.transcription_manager.transcribe_batch(batch)
+                    self.stats['batches_created'] += 1
                 
                 # Small delay to prevent overwhelming
                 await asyncio.sleep(0.01)  # 10ms
