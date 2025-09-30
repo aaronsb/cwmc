@@ -96,10 +96,17 @@ class TranscriptionConfig:
     
     def __post_init__(self):
         """Validate configuration."""
-        supported_models = ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]
+        supported_models = [
+            "whisper-1",
+            "gpt-4o-transcribe",
+            "gpt-4o-mini-transcribe",
+            "gemini-2.0-flash-transcribe",
+            "gemini-2.0-flash-lite-transcribe",
+            "gemini-1.5-pro-transcribe"
+        ]
         if self.transcription_model not in supported_models:
             raise ValueError(f"Unsupported transcription model: {self.transcription_model}")
-        
+
         # Validate fallback models
         for model in self.model_fallback:
             if model not in supported_models:

@@ -11,9 +11,10 @@ from dotenv import load_dotenv
 
 from .audio_capture import AudioCapture, AudioCaptureConfig
 from .batching import BatchProcessor, BatchingConfig
-from .whisper_integration import WhisperClient, WhisperConfig, TranscriptionManager
+from .config import TranscriptionConfig
+from .transcription import TranscriptionManager
 from .gemini_integration import (
-    GeminiClient, GeminiConfig, ContextManager, 
+    GeminiClient, GeminiConfig, ContextManager,
     QAHandler, InsightGenerator
 )
 from .live_qa import LiveQAServer, run_qa_server
@@ -29,7 +30,6 @@ class LiveTranscriptsApp:
         # Components
         self.audio_capture: Optional[AudioCapture] = None
         self.batch_processor: Optional[BatchProcessor] = None
-        self.whisper_client: Optional[WhisperClient] = None
         self.transcription_manager: Optional[TranscriptionManager] = None
         self.gemini_client: Optional[GeminiClient] = None
         self.context_manager: Optional[ContextManager] = None
@@ -57,12 +57,9 @@ class LiveTranscriptsApp:
         """Initialize all components."""
         print("Initializing Live Transcripts...")
         
-        # Get API keys
-        openai_key = os.getenv('OPENAI_API_KEY')
+        # Get API key (Google API key for both transcription and Q&A)
         google_key = os.getenv('GOOGLE_API_KEY')
-        
-        if not openai_key:
-            raise ValueError("OPENAI_API_KEY environment variable required")
+
         if not google_key:
             raise ValueError("GOOGLE_API_KEY environment variable required")
         
@@ -81,14 +78,14 @@ class LiveTranscriptsApp:
             sample_rate=audio_config.sample_rate
         )
         
-        whisper_config = WhisperConfig(
-            model=self.config.get('whisper_model', 'whisper-1'),
-            language=self.config.get('language'),
-            temperature=self.config.get('whisper_temperature', 0.0)
+        transcription_config = TranscriptionConfig(
+            transcription_model=self.config.get('transcription_model', 'gemini-2.0-flash-lite-transcribe'),
+            whisper_language=self.config.get('language'),
+            model_fallback=self.config.get('model_fallback', ['gemini-2.0-flash-transcribe'])
         )
         
         gemini_config = GeminiConfig(
-            model=self.config.get('gemini_model', 'gemini-1.5-flash'),
+            model=self.config.get('gemini_model', 'gemini-2.0-flash-lite'),
             temperature=self.config.get('gemini_temperature', 0.3),
             context_window_minutes=self.config.get('context_window_minutes', 5),
             insight_interval_seconds=self.config.get('insight_interval_seconds', 60)
@@ -101,10 +98,9 @@ class LiveTranscriptsApp:
             
             self.batch_processor = BatchProcessor(batching_config)
             print("✓ Batch processor initialized")
-            
-            self.whisper_client = WhisperClient(whisper_config, openai_key)
-            self.transcription_manager = TranscriptionManager(self.whisper_client)
-            print("✓ Whisper integration initialized")
+
+            self.transcription_manager = TranscriptionManager(transcription_config, google_key)
+            print("✓ Transcription manager initialized (Gemini)")
             
             self.gemini_client = GeminiClient(gemini_config, google_key)
             self.context_manager = ContextManager(gemini_config)
@@ -413,14 +409,7 @@ if __name__ == "__main__":
     # Load environment variables from .env file
     load_dotenv()
     
-    # Check for required environment variables
-    if not os.getenv('OPENAI_API_KEY'):
-        print("Error: OPENAI_API_KEY environment variable required")
-        print("Options:")
-        print("1. Set with: export OPENAI_API_KEY='your-api-key'")
-        print("2. Create .env file with: OPENAI_API_KEY=your-api-key")
-        sys.exit(1)
-    
+    # Check for required environment variables (Google API key for both transcription and Q&A)
     if not os.getenv('GOOGLE_API_KEY'):
         print("Error: GOOGLE_API_KEY environment variable required")
         print("Options:")

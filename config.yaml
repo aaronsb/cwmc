@@ -1,19 +1,19 @@
 # Live Transcripts Configuration
-# Force use of BlackHole for system audio capture
+# Linux audio configuration using PipeWire
 
 audio:
-  device_name: "BlackHole 2ch"  # Force BlackHole for system audio
-  device_auto_select: false     # Don't auto-select
+  device_name: null              # Auto-detect system audio device
+  device_auto_select: true       # Enable auto-selection for Linux
   prefer_monitor_devices: true
-  backend_preference: auto
+  backend_preference: pipewire
   sample_rate: 16000
   channels: 1                   # Convert stereo to mono
   chunk_size: 1024
   buffer_duration: 10.0
 
 transcription:
-  transcription_model: "gpt-4o-transcribe"
-  model_fallback: ["whisper-1"]
+  transcription_model: "gemini-2.0-flash-lite-transcribe"
+  model_fallback: ["gemini-2.0-flash-transcribe", "gemini-1.5-pro-transcribe"]
   min_batch_duration: 4.5
   max_batch_duration: 45.0
   silence_duration_threshold: 0.5

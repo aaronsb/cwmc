@@ -6,14 +6,16 @@ including OpenAI Whisper and GPT-4o transcription models.
 
 from .base import TranscriptionClient
 from .gpt4o_client import GPT4oClient
+from .gemini_client import GeminiClient
 from .registry import TranscriptionRegistry
 from .manager import TranscriptionManager
 from ..config import TranscriptionConfig
 
 __all__ = [
     'TranscriptionClient',
-    'TranscriptionConfig', 
+    'TranscriptionConfig',
     'GPT4oClient',
+    'GeminiClient',
     'TranscriptionRegistry',
     'TranscriptionManager',
 ]
