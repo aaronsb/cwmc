@@ -39,7 +39,7 @@ Transform Live Transcripts from a Gemini-only web app into a modular, flexible t
 - Existing Gemini functionality unchanged
 - Clean separation between transcription and cognitive processing
 
-**Estimated Duration:** 1-2 weeks
+**Complexity:** Low-Medium (straightforward refactoring)
 
 ## Phase 2: Session Logging System
 
@@ -64,7 +64,7 @@ Transform Live Transcripts from a Gemini-only web app into a modular, flexible t
 - Token/cost tracking visible
 - Can resume or reference old sessions
 
-**Estimated Duration:** 1-2 weeks
+**Complexity:** Low (file I/O + formatting)
 
 ## Phase 3: OpenAI Backends
 
@@ -87,7 +87,7 @@ Transform Live Transcripts from a Gemini-only web app into a modular, flexible t
 - Can mix Gemini and OpenAI backends
 - Proper API key management for multiple providers
 
-**Estimated Duration:** 1 week
+**Complexity:** Low (similar to existing Gemini backends)
 
 ## Phase 4: Local Model Research & Selection
 
@@ -115,7 +115,7 @@ Transform Live Transcripts from a Gemini-only web app into a modular, flexible t
 - Documented setup and performance metrics
 - ROI analysis (cost vs cloud)
 
-**Estimated Duration:** 1-2 weeks (research + testing)
+**Complexity:** Low (research + documentation)
 
 ## Phase 5: Local Backend Implementation
 
@@ -142,7 +142,7 @@ Transform Live Transcripts from a Gemini-only web app into a modular, flexible t
 - No cloud dependencies when local mode enabled
 - Graceful degradation if GPU unavailable
 
-**Estimated Duration:** 2-3 weeks
+**Complexity:** Medium-High (GPU setup, model loading, optimization)
 
 ## Phase 6: UI Modernization
 
@@ -175,7 +175,7 @@ Transform Live Transcripts from a Gemini-only web app into a modular, flexible t
 - Simpler architecture (no client-server split)
 - Optional: TUI alternative for terminal users
 
-**Estimated Duration:** 3-4 weeks
+**Complexity:** High (UI redesign, Qt learning curve if needed)
 
 ## Phase 7: Polish & Documentation
 
@@ -198,7 +198,7 @@ Transform Live Transcripts from a Gemini-only web app into a modular, flexible t
 - [ ] Video tutorials
 - [ ] Community setup (issues, discussions, wiki)
 
-**Estimated Duration:** 2 weeks
+**Complexity:** Low-Medium (testing, docs, packaging)
 
 ## Future Ideas (Backlog)
 
@@ -216,15 +216,16 @@ Transform Live Transcripts from a Gemini-only web app into a modular, flexible t
 
 ## Timeline Estimate
 
-**Aggressive:** 3-4 months
-**Realistic:** 5-6 months
-**Conservative:** 6-9 months
+With Claude Code + Human collaboration:
+- **Phase 1-3 (Backend + Logging + OpenAI):** 2-3 days
+- **Phase 4 (Research):** 1 day
+- **Phase 5 (Local Backends):** 2-3 days
+- **Phase 6 (UI Redesign):** 3-5 days (most complex)
+- **Phase 7 (Polish):** 1-2 days
 
-Factors:
-- Full-time vs part-time development
-- Complexity of local model integration
-- UI design iterations
-- Testing and polish time
+**Total: 10-15 days of active development**
+
+Note: This assumes working sessions with Claude Code assistance, not solo development.
 
 ## Success Metrics
 
